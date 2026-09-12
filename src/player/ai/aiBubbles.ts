@@ -647,7 +647,7 @@ export class AIBubbles {
       this.bubbleRiseSpeed *
       delta;
 
-    const bubbleRadius = 1.8;
+    const bubbleRadius = 1.5;
 
     // Allow the bubble to rise
     // above the surface.

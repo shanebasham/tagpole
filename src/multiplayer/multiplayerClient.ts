@@ -34,13 +34,10 @@ export class MultiplayerClient {
     ((status: MultiplayerStatus) => void) | null =
     null;
 
-  // ==============================
-  // CONNECT
-  // ==============================
-
   connect(
     serverUrl: string
   ) {
+
     if (
       this.socket &&
       this.socket.readyState ===
@@ -61,6 +58,7 @@ export class MultiplayerClient {
     this.socket.addEventListener(
       'open',
       () => {
+
         this.setStatus(
           'connected'
         );
@@ -70,6 +68,7 @@ export class MultiplayerClient {
     this.socket.addEventListener(
       'message',
       (event) => {
+
         this.handleMessage(
           event.data
         );
@@ -79,6 +78,7 @@ export class MultiplayerClient {
     this.socket.addEventListener(
       'close',
       () => {
+
         this.socket =
           null;
 
@@ -91,6 +91,7 @@ export class MultiplayerClient {
     this.socket.addEventListener(
       'error',
       () => {
+
         this.setStatus(
           'disconnected'
         );
@@ -98,14 +99,12 @@ export class MultiplayerClient {
     );
   }
 
-  // ==============================
-  // DISCONNECT
-  // ==============================
-
   disconnect() {
+
     if (
       this.socket
     ) {
+
       this.socket.close();
 
       this.socket =
@@ -126,25 +125,22 @@ export class MultiplayerClient {
     );
   }
 
-  // ==============================
-  // CREATE ROOM
-  // ==============================
-
   createRoom() {
+
     this.send({
-      type: 'create-room'
+      type:
+        'create-room'
     });
   }
-
-  // ==============================
-  // JOIN ROOM
-  // ==============================
 
   joinRoom(
     roomCode: string
   ) {
+
     this.send({
-      type: 'join-room',
+      type:
+        'join-room',
+
       roomCode:
         roomCode
           .trim()
@@ -152,60 +148,53 @@ export class MultiplayerClient {
     });
   }
 
-  // ==============================
-  // SEND PLAYER STATE
-  // ==============================
-
   sendPlayerState(
     player: NetworkPlayer
   ) {
+
     this.send({
-      type: 'player-state',
+      type:
+        'player-state',
+
       player
     });
   }
 
-  // ==============================
-  // LEAVE ROOM
-  // ==============================
+  startGame() {
+
+    this.send({
+      type:
+        'start-game'
+    });
+  }
+
+  playAgain() {
+
+    this.send({
+      type:
+        'play-again'
+    });
+  }
 
   leaveRoom() {
+
     this.send({
-      type: 'leave-room'
+      type:
+        'leave-room'
     });
 
     this.roomCode =
       null;
-
-    this.gameState =
-      null;
   }
-
-  // ==============================
-  // START GAME
-  // ==============================
-
-  startGame() {
-    this.send({
-      type: 'start-game'
-    });
-  }
-
-  // ==============================
-  // STATE CALLBACK
-  // ==============================
 
   setStateListener(
     callback:
       (state: GameState) => void
   ) {
+
     this.onStateUpdate =
       callback;
   }
-
-  // ==============================
-  // STATUS CALLBACK
-  // ==============================
 
   setStatusListener(
     callback:
@@ -213,45 +202,47 @@ export class MultiplayerClient {
         status: MultiplayerStatus
       ) => void
   ) {
+
     this.onStatusChange =
       callback;
   }
 
-  // ==============================
-  // GETTERS
-  // ==============================
-
   getStatus() {
+
     return this.status;
   }
 
   getGameState() {
+
     return this.gameState;
   }
 
   getPlayerId() {
+
     return this.playerId;
   }
 
   getRoomCode() {
+
     return this.roomCode;
   }
-
-  // ==============================
-  // MESSAGE HANDLING
-  // ==============================
 
   private handleMessage(
     rawMessage: string
   ) {
-    let message: any;
+
+    let message:
+      any;
 
     try {
+
       message =
         JSON.parse(
           rawMessage
         );
+
     } catch {
+
       console.error(
         'Invalid multiplayer message:',
         rawMessage
@@ -265,24 +256,28 @@ export class MultiplayerClient {
     ) {
 
       case 'connected':
+
         this.playerId =
           message.playerId;
 
         break;
 
       case 'room-created':
+
         this.roomCode =
           message.roomCode;
 
         break;
 
       case 'room-joined':
+
         this.roomCode =
           message.roomCode;
 
         break;
 
       case 'game-state':
+
         this.gameState =
           message.state;
 
@@ -290,6 +285,7 @@ export class MultiplayerClient {
           this.onStateUpdate &&
           this.gameState
         ) {
+
           this.onStateUpdate(
             this.gameState
           );
@@ -298,6 +294,7 @@ export class MultiplayerClient {
         break;
 
       case 'error':
+
         console.error(
           'Multiplayer error:',
           message.message
@@ -306,6 +303,7 @@ export class MultiplayerClient {
         break;
 
       default:
+
         console.warn(
           'Unknown multiplayer message:',
           message
@@ -313,18 +311,16 @@ export class MultiplayerClient {
     }
   }
 
-  // ==============================
-  // SEND
-  // ==============================
-
   private send(
     message: unknown
   ) {
+
     if (
       !this.socket ||
       this.socket.readyState !==
         WebSocket.OPEN
     ) {
+
       console.warn(
         'Multiplayer socket is not connected.'
       );
@@ -339,19 +335,17 @@ export class MultiplayerClient {
     );
   }
 
-  // ==============================
-  // STATUS
-  // ==============================
-
   private setStatus(
     status: MultiplayerStatus
   ) {
+
     this.status =
       status;
 
     if (
       this.onStatusChange
     ) {
+
       this.onStatusChange(
         status
       );

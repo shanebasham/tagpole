@@ -7,6 +7,10 @@ import {
 } from './multiplayer/multiplayerClient';
 
 import {
+  RemotePlayer
+} from './multiplayer/remotePlayer';
+
+import {
   Player
 } from './player/player';
 
@@ -59,6 +63,10 @@ import {
 import {
   MainMenu
 } from './menu/mainMenu';
+
+import type {
+  NetworkPlayer
+} from './multiplayer/gameState';
 
 // ==============================
 // SCENE
@@ -198,6 +206,19 @@ multiplayer.connect(
 );
 
 // ==============================
+// REMOTE PLAYERS
+// ==============================
+
+const remotePlayers =
+  new Map<
+    string,
+    RemotePlayer
+  >();
+
+let multiplayerSendTimer =
+  0;
+
+// ==============================
 // GAME STATE
 // ==============================
 
@@ -212,6 +233,23 @@ let playerTrapped =
 
 let playerDead =
   false;
+
+// ==============================
+// CLEAR REMOTE PLAYERS
+// ==============================
+
+function clearRemotePlayers() {
+
+  for (
+    const remote of
+    remotePlayers.values()
+  ) {
+
+    remote.destroy();
+  }
+
+  remotePlayers.clear();
+}
 
 // ==============================
 // MAIN MENU
@@ -293,6 +331,8 @@ const mainMenu =
       player.model.visible =
         false;
 
+      clearRemotePlayers();
+
       multiplayer.leaveRoom();
 
     },
@@ -327,6 +367,83 @@ multiplayer.setStateListener(
       multiplayer.getPlayerId();
 
     // ==========================
+    // UPDATE REMOTE PLAYERS
+    // ==========================
+
+    if (
+      multiplayerGame
+    ) {
+
+      const currentRemoteIds =
+        new Set<string>();
+
+      for (
+        const networkPlayer of
+        state.players
+      ) {
+
+        if (
+          networkPlayer.id ===
+          playerId
+        ) {
+          continue;
+        }
+
+        currentRemoteIds.add(
+          networkPlayer.id
+        );
+
+        let remote =
+          remotePlayers.get(
+            networkPlayer.id
+          );
+
+        if (!remote) {
+
+          remote =
+            new RemotePlayer(
+              scene,
+              networkPlayer
+            );
+
+          remotePlayers.set(
+            networkPlayer.id,
+            remote
+          );
+
+        } else {
+
+          remote.updateFromNetwork(
+            networkPlayer
+          );
+        }
+      }
+
+      // Remove players who left
+
+      for (
+        const [
+          id,
+          remote
+        ] of remotePlayers
+      ) {
+
+        if (
+          !currentRemoteIds.has(
+            id
+          )
+        ) {
+
+          remote.destroy();
+
+          remotePlayers.delete(
+            id
+          );
+        }
+      }
+    }
+
+    // ==========================
     // LOBBY
     // ==========================
 
@@ -334,6 +451,20 @@ multiplayer.setStateListener(
       state.phase === 'lobby' &&
       roomCode
     ) {
+
+      gameStarted =
+        false;
+
+      playerDead =
+        false;
+
+      playerTrapped =
+        false;
+
+      player.model.visible =
+        false;
+
+      deathScreen.hide();
 
       const isHost =
         playerId ===
@@ -372,12 +503,106 @@ multiplayer.setStateListener(
       player.model.visible =
         false;
 
+      deathScreen.hide();
+
       mainMenu.hide();
 
       return;
     }
+
+    // ==========================
+    // ROUND OVER
+    // ==========================
+
+    if (
+      state.phase === 'ended'
+    ) {
+
+      gameStarted =
+        true;
+
+      multiplayerGame =
+        true;
+
+      const isHost =
+        playerId ===
+        state.hostId;
+
+      deathScreen.show(
+        'round-over',
+        isHost
+      );
+    }
   }
 );
+
+// ==============================
+// SEND LOCAL PLAYER
+// ==============================
+
+function sendMultiplayerPlayerState() {
+
+  if (
+    !multiplayerGame ||
+    !gameStarted
+  ) {
+    return;
+  }
+
+  const playerId =
+    multiplayer.getPlayerId();
+
+  if (!playerId) {
+    return;
+  }
+
+  const position =
+    player.camera.position;
+
+  const networkPlayer:
+    NetworkPlayer = {
+
+    id:
+      playerId,
+
+    x:
+      position.x,
+
+    y:
+      position.y,
+
+    z:
+      position.z,
+
+    yaw:
+      player.camera.rotation.y,
+
+    pitch:
+      player.camera.rotation.x,
+
+    vx:
+      0,
+
+    vy:
+      0,
+
+    vz:
+      0,
+
+    alive:
+      !playerDead,
+
+    trapped:
+      playerTrapped,
+
+    isDrowned:
+      playerDead,
+  };
+
+  multiplayer.sendPlayerState(
+    networkPlayer
+  );
+}
 
 // ==============================
 // HUD
@@ -410,28 +635,297 @@ const deathScreen =
   createDeathScreen(
 
     // --------------------------
-    // START AGAIN
+    // SPECTATE
     // --------------------------
 
     () => {
 
-      window.location.href =
-        window.location.pathname +
-        '?start=ai';
+      playerDead =
+        true;
 
+      playerTrapped =
+        false;
+
+      hud.setTrapped(
+        false,
+        null
+      );
+
+      hud.setAlive(
+        false
+      );
+
+      hud.setCrosshairVisible(
+        false
+      );
+
+      player.model.visible =
+        false;
     },
 
     // --------------------------
-    // MAIN MENU
+    // RETURN TO LOBBY
     // --------------------------
 
     () => {
 
+      if (
+        multiplayerGame
+      ) {
+
+        playerDead =
+          false;
+
+        playerTrapped =
+          false;
+
+        gameStarted =
+          false;
+
+        player.model.visible =
+          false;
+
+        clearRemotePlayers();
+
+        deathScreen.hide();
+
+        multiplayer.leaveRoom();
+
+        return;
+      }
+
+      playerDead =
+        false;
+
+      playerTrapped =
+        false;
+
+      gameStarted =
+        false;
+
+      player.model.visible =
+        false;
+
+      deathScreen.hide();
+
       window.location.href =
         window.location.pathname;
+    },
 
+    // --------------------------
+    // PLAY AGAIN
+    // --------------------------
+
+    () => {
+
+      if (
+        !multiplayerGame
+      ) {
+        return;
+      }
+
+      multiplayer.playAgain();
     }
   );
+
+// ==============================
+// EXIT / PAUSE MENU
+// ==============================
+
+let exitMenuOpen =
+  false;
+
+const exitMenu =
+  document.createElement('div');
+
+exitMenu.id =
+  'exit-menu';
+
+exitMenu.innerHTML = `
+  <div id="exit-menu-panel">
+
+    <div id="exit-menu-title">
+      PAUSED
+    </div>
+
+    <div id="exit-menu-subtitle">
+      LEAVE THE HUNT?
+    </div>
+
+    <div id="exit-menu-buttons">
+
+      <button id="resume-button">
+        RESUME
+      </button>
+
+      <button id="exit-to-menu-button">
+        EXIT TO MAIN MENU
+      </button>
+
+    </div>
+
+  </div>
+`;
+
+document.body.appendChild(
+  exitMenu
+);
+
+const resumeButton =
+  document.getElementById(
+    'resume-button'
+  );
+
+const exitToMenuButton =
+  document.getElementById(
+    'exit-to-menu-button'
+  );
+
+function closeExitMenu() {
+
+  exitMenuOpen =
+    false;
+
+  exitMenu.classList.remove(
+    'visible'
+  );
+
+  if (
+    typeof document.exitPointerLock ===
+    'function'
+  ) {
+    document.exitPointerLock();
+  }
+}
+
+function openExitMenu() {
+
+  if (
+    !gameStarted ||
+    playerDead ||
+    exitMenuOpen
+  ) {
+    return;
+  }
+
+  exitMenuOpen =
+    true;
+
+  exitMenu.classList.add(
+    'visible'
+  );
+
+  if (
+    typeof document.exitPointerLock ===
+    'function'
+  ) {
+    document.exitPointerLock();
+  }
+}
+
+function exitToMainMenu() {
+
+  closeExitMenu();
+
+  playerDead =
+    false;
+
+  playerTrapped =
+    false;
+
+  gameStarted =
+    false;
+
+  multiplayerGame =
+    false;
+
+  player.model.visible =
+    false;
+
+  deathScreen.hide();
+
+  clearRemotePlayers();
+
+  multiplayer.leaveRoom();
+
+  mainMenu.show();
+}
+
+resumeButton?.addEventListener(
+  'click',
+  () => {
+    closeExitMenu();
+  }
+);
+
+exitToMenuButton?.addEventListener(
+  'click',
+  () => {
+    exitToMainMenu();
+  }
+);
+
+window.addEventListener(
+  'keydown',
+  (event) => {
+
+    if (
+      event.key !==
+      'Escape'
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+
+    if (
+      exitMenuOpen
+    ) {
+
+      closeExitMenu();
+
+    } else {
+
+      openExitMenu();
+
+    }
+  }
+);
+
+// ==============================
+// MOBILE EXIT BUTTON
+// ==============================
+
+const mobileExit =
+  document.createElement('button');
+
+mobileExit.id =
+  'mobile-exit';
+
+mobileExit.textContent =
+  'EXIT';
+
+document.body.appendChild(
+  mobileExit
+);
+
+mobileExit.addEventListener(
+  'click',
+  () => {
+
+    if (
+      exitMenuOpen
+    ) {
+
+      closeExitMenu();
+
+    } else {
+
+      openExitMenu();
+
+    }
+  }
+);
 
 // ==============================
 // AUTO START
@@ -557,6 +1051,7 @@ for (
       (bubble) => {
 
         if (
+          multiplayerGame ||
           playerTrapped ||
           playerDead
         ) {
@@ -675,6 +1170,20 @@ function animate() {
   }
 
   // ============================
+  // REMOTE PLAYERS
+  // ============================
+
+  for (
+    const remote of
+    remotePlayers.values()
+  ) {
+
+    remote.update(
+      delta
+    );
+  }
+
+  // ============================
   // AI
   // ============================
 
@@ -690,7 +1199,6 @@ function animate() {
         delta,
         scene
       );
-
     }
   }
 
@@ -701,6 +1209,29 @@ function animate() {
   player.update(
     delta
   );
+
+  // ============================
+  // SEND MULTIPLAYER STATE
+  // ============================
+
+  if (
+    multiplayerGame
+  ) {
+
+    multiplayerSendTimer +=
+      delta;
+
+    if (
+      multiplayerSendTimer >=
+      0.05
+    ) {
+
+      multiplayerSendTimer =
+        0;
+
+      sendMultiplayerPlayerState();
+    }
+  }
 
   // ============================
   // COLLISIONS
@@ -732,7 +1263,8 @@ function animate() {
     null;
 
   if (
-    !multiplayerGame
+    !multiplayerGame &&
+    !playerDead
   ) {
 
     for (
@@ -882,7 +1414,6 @@ function animate() {
       flashlightSystem.flashlight,
       flashlightSystem.target
     );
-
   }
 
   // ============================

@@ -36,11 +36,14 @@ interface Player {
 
 interface Room {
   code: string;
+
   hostId: string;
+
   phase:
     | 'lobby'
     | 'playing'
     | 'ended';
+
   players: Map<WebSocket, Player>;
 }
 
@@ -142,36 +145,37 @@ const server =
 
       const contentTypes:
         Record<string, string> = {
-          '.html':
-            'text/html; charset=utf-8',
 
-          '.js':
-            'application/javascript',
+        '.html':
+          'text/html; charset=utf-8',
 
-          '.css':
-            'text/css',
+        '.js':
+          'application/javascript',
 
-          '.json':
-            'application/json',
+        '.css':
+          'text/css',
 
-          '.svg':
-            'image/svg+xml',
+        '.json':
+          'application/json',
 
-          '.png':
-            'image/png',
+        '.svg':
+          'image/svg+xml',
 
-          '.jpg':
-            'image/jpeg',
+        '.png':
+          'image/png',
 
-          '.jpeg':
-            'image/jpeg',
+        '.jpg':
+          'image/jpeg',
 
-          '.webp':
-            'image/webp',
+        '.jpeg':
+          'image/jpeg',
 
-          '.ico':
-            'image/x-icon',
-        };
+        '.webp':
+          'image/webp',
+
+        '.ico':
+          'image/x-icon',
+      };
 
       const contentType =
         contentTypes[
@@ -364,6 +368,100 @@ function broadcastRoomState(
 
         state,
       }
+    );
+  }
+}
+
+// ==============================
+// RESET PLAYERS
+// ==============================
+
+function resetPlayers(
+  room: Room
+) {
+
+  let index =
+    0;
+
+  for (
+    const player of
+    room.players.values()
+  ) {
+
+    player.x =
+      index * 4;
+
+    player.y =
+      0;
+
+    player.z =
+      10;
+
+    player.yaw =
+      0;
+
+    player.pitch =
+      0;
+
+    player.vx =
+      0;
+
+    player.vy =
+      0;
+
+    player.vz =
+      0;
+
+    player.alive =
+      true;
+
+    player.trapped =
+      false;
+
+    player.isDrowned =
+      false;
+
+    index++;
+  }
+}
+
+// ==============================
+// CHECK ROUND END
+// ==============================
+
+function checkRoundEnd(
+  room: Room
+) {
+
+  if (
+    room.phase !==
+    'playing'
+  ) {
+    return;
+  }
+
+  const alivePlayers =
+    Array.from(
+      room.players.values()
+    ).filter(
+      (player) =>
+        player.alive &&
+        !player.isDrowned
+    );
+
+  if (
+    alivePlayers.length <= 1
+  ) {
+
+    room.phase =
+      'ended';
+
+    console.log(
+      `Game ended in room: ${room.code}`
+    );
+
+    broadcastRoomState(
+      room
     );
   }
 }
@@ -737,11 +835,74 @@ wss.on(
             return;
           }
 
+          resetPlayers(
+            currentRoom
+          );
+
           currentRoom.phase =
             'playing';
 
           console.log(
             `Game started in room: ${currentRoom.code}`
+          );
+
+          broadcastRoomState(
+            currentRoom
+          );
+
+          return;
+        }
+
+        // ==============================
+        // PLAY AGAIN
+        // ==============================
+
+        if (
+          message.type ===
+          'play-again'
+        ) {
+
+          if (
+            !currentRoom
+          ) {
+            return;
+          }
+
+          if (
+            playerId !==
+            currentRoom.hostId
+          ) {
+
+            send(
+              socket,
+              {
+                type:
+                  'error',
+
+                message:
+                  'Only the host can start another round.',
+              }
+            );
+
+            return;
+          }
+
+          if (
+            currentRoom.phase !==
+            'ended'
+          ) {
+            return;
+          }
+
+          resetPlayers(
+            currentRoom
+          );
+
+          currentRoom.phase =
+            'lobby';
+
+          console.log(
+            `Returning room ${currentRoom.code} to lobby`
           );
 
           broadcastRoomState(
@@ -844,6 +1005,10 @@ wss.on(
             );
 
           broadcastRoomState(
+            currentRoom
+          );
+
+          checkRoundEnd(
             currentRoom
           );
 

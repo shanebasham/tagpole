@@ -1,9 +1,15 @@
 import './style.css';
 
+export type DeathScreenMode =
+  | 'death'
+  | 'round-over';
+
 export function createDeathScreen(
-  onRestart: () => void,
-  onMainMenu: () => void
+  onSpectate: () => void,
+  onReturnToLobby: () => void,
+  onPlayAgain: () => void
 ) {
+
   const deathScreen =
     document.createElement('div');
 
@@ -22,15 +28,21 @@ export function createDeathScreen(
     <div id="death-buttons">
 
       <button
-        id="restart-button"
+        id="spectate-button"
       >
-        START AGAIN
+        SPECTATE
+      </button>
+
+      <button
+        id="play-again-button"
+      >
+        PLAY AGAIN
       </button>
 
       <button
         id="main-menu-button"
       >
-        MAIN MENU
+        RETURN TO LOBBY
       </button>
 
     </div>
@@ -40,28 +52,139 @@ export function createDeathScreen(
     deathScreen
   );
 
-  const restartButton =
+  const deathTitle =
     document.getElementById(
-      'restart-button'
+      'death-title'
     );
 
-  restartButton?.addEventListener(
-    'click',
-    onRestart
-  );
+  const deathSubtitle =
+    document.getElementById(
+      'death-subtitle'
+    );
+
+  const spectateButton =
+    document.getElementById(
+      'spectate-button'
+    );
+
+  const playAgainButton =
+    document.getElementById(
+      'play-again-button'
+    );
 
   const mainMenuButton =
     document.getElementById(
       'main-menu-button'
     );
 
+  spectateButton?.addEventListener(
+    'click',
+    () => {
+
+      deathScreen.classList.remove(
+        'visible'
+      );
+
+      onSpectate();
+    }
+  );
+
+  playAgainButton?.addEventListener(
+    'click',
+    () => {
+
+      deathScreen.classList.remove(
+        'visible'
+      );
+
+      onPlayAgain();
+    }
+  );
+
   mainMenuButton?.addEventListener(
     'click',
-    onMainMenu
+    () => {
+
+      deathScreen.classList.remove(
+        'visible'
+      );
+
+      onReturnToLobby();
+    }
   );
 
   return {
-    show() {
+
+    show(
+      mode: DeathScreenMode = 'death',
+      isHost = false
+    ) {
+
+      if (
+        mode === 'death'
+      ) {
+
+        if (deathTitle) {
+          deathTitle.textContent =
+            'YOU DIED';
+        }
+
+        if (deathSubtitle) {
+          deathSubtitle.textContent =
+            'THE SURFACE CLAIMED YOU';
+        }
+
+        if (spectateButton) {
+          spectateButton.style.display =
+            'block';
+        }
+
+        if (playAgainButton) {
+          playAgainButton.style.display =
+            'none';
+        }
+
+        if (mainMenuButton) {
+          mainMenuButton.textContent =
+            'RETURN TO LOBBY';
+        }
+
+      } else {
+
+        if (deathTitle) {
+          deathTitle.textContent =
+            'ROUND OVER';
+        }
+
+        if (deathSubtitle) {
+          deathSubtitle.textContent =
+            'THE HUNT HAS ENDED';
+        }
+
+        if (spectateButton) {
+          spectateButton.style.display =
+            'none';
+        }
+
+        if (playAgainButton) {
+
+          playAgainButton.style.display =
+            isHost
+              ? 'block'
+              : 'none';
+
+          playAgainButton.textContent =
+            isHost
+              ? 'PLAY AGAIN'
+              : 'WAITING FOR HOST...';
+        }
+
+        if (mainMenuButton) {
+          mainMenuButton.textContent =
+            'RETURN TO LOBBY';
+        }
+      }
+
       deathScreen.classList.add(
         'visible'
       );
@@ -70,14 +193,33 @@ export function createDeathScreen(
         typeof document.exitPointerLock ===
         'function'
       ) {
+
         document.exitPointerLock();
       }
     },
 
     hide() {
+
       deathScreen.classList.remove(
         'visible'
       );
     },
+
+    setWaitingForHost() {
+
+      if (
+        playAgainButton
+      ) {
+
+        playAgainButton.style.display =
+          'block';
+
+        // playAgainButton.disabled =
+        //   true;
+
+        playAgainButton.textContent =
+          'WAITING FOR HOST...';
+      }
+    }
   };
 }

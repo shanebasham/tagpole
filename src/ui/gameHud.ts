@@ -57,10 +57,6 @@ export function createGameHud() {
         TRAPPED
       </div>
 
-      <div id="trapped-distance">
-        SURFACE: 30.0m
-      </div>
-
       <div id="trapped-warning">
         POP THE BUBBLE
       </div>
@@ -94,11 +90,6 @@ export function createGameHud() {
   const trappedStatus =
     document.getElementById(
       'trapped-status'
-    );
-
-  const trappedDistance =
-    document.getElementById(
-      'trapped-distance'
     );
 
   const crosshair =
@@ -205,18 +196,6 @@ export function createGameHud() {
       if (!trapped || !bubble) {
         return;
       }
-
-      const distance =
-        Math.max(
-          0,
-          30 -
-            bubble.position.y
-        );
-
-      if (trappedDistance) {
-        trappedDistance.textContent =
-          `SURFACE: ${distance.toFixed(1)}m`;
-      }
     },
 
     updateTrapped(
@@ -227,18 +206,6 @@ export function createGameHud() {
         !trappedStatus
       ) {
         return;
-      }
-
-      const distance =
-        Math.max(
-          0,
-          30 -
-            bubble.position.y
-        );
-
-      if (trappedDistance) {
-        trappedDistance.textContent =
-          `SURFACE: ${distance.toFixed(1)}m`;
       }
     },
 
