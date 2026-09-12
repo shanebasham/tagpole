@@ -712,6 +712,22 @@
   }
 }
 
+/* =================================
+   LOBBY START BUTTON
+   ================================= */
+
+.lobby-start-button {
+  margin-top: 24px;
+  min-width: 220px;
+}
+
+.lobby-start-button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+
+
 @media (
   max-width: 700px
 ) and (
@@ -724,6 +740,11 @@
     width: 110px !important;
     height: 36px !important;
     font-size: 9px !important;
+  }
+
+  .lobby-start-button {
+    min-width: 190px;
+    margin-top: 20px;
   }
 
   .lobby-code {

@@ -1,8 +1,14 @@
 import * as THREE from 'three';
 import './style.css';
 import './debug/errorCatcher';
-import { MultiplayerClient } from './multiplayer/multiplayerClient';
-import { Player } from './player/player';
+
+import {
+  MultiplayerClient
+} from './multiplayer/multiplayerClient';
+
+import {
+  Player
+} from './player/player';
 
 import {
   createDeathScreen
@@ -182,7 +188,8 @@ multiplayer.setStatusListener(
 );
 
 const multiplayerProtocol =
-  window.location.protocol === 'https:'
+  window.location.protocol ===
+  'https:'
     ? 'wss:'
     : 'ws:';
 
@@ -197,6 +204,9 @@ multiplayer.connect(
 let gameStarted =
   false;
 
+let multiplayerGame =
+  false;
+
 let playerTrapped =
   false;
 
@@ -209,6 +219,7 @@ let playerDead =
 
 const mainMenu =
   new MainMenu(
+
     player.model,
 
     // --------------------------
@@ -216,6 +227,9 @@ const mainMenu =
     // --------------------------
 
     () => {
+
+      multiplayerGame =
+        false;
 
       gameStarted =
         true;
@@ -236,6 +250,9 @@ const mainMenu =
 
     () => {
 
+      multiplayerGame =
+        true;
+
       multiplayer.createRoom();
 
     },
@@ -245,6 +262,9 @@ const mainMenu =
     // --------------------------
 
     (roomCode) => {
+
+      multiplayerGame =
+        true;
 
       multiplayer.joinRoom(
         roomCode
@@ -258,7 +278,32 @@ const mainMenu =
 
     () => {
 
+      multiplayerGame =
+        false;
+
+      gameStarted =
+        false;
+
+      playerDead =
+        false;
+
+      playerTrapped =
+        false;
+
+      player.model.visible =
+        false;
+
       multiplayer.leaveRoom();
+
+    },
+
+    // --------------------------
+    // START GAME
+    // --------------------------
+
+    () => {
+
+      multiplayer.startGame();
 
     }
   );
@@ -278,17 +323,58 @@ multiplayer.setStateListener(
     const roomCode =
       multiplayer.getRoomCode();
 
+    const playerId =
+      multiplayer.getPlayerId();
+
+    // ==========================
+    // LOBBY
+    // ==========================
+
     if (
       state.phase === 'lobby' &&
       roomCode
     ) {
 
+      const isHost =
+        playerId ===
+        state.hostId;
+
       mainMenu.showLobby(
         roomCode,
         state.players.length,
-        state.maxPlayers
+        state.maxPlayers,
+        isHost
       );
 
+      return;
+    }
+
+    // ==========================
+    // GAME STARTED
+    // ==========================
+
+    if (
+      state.phase === 'playing'
+    ) {
+
+      gameStarted =
+        true;
+
+      multiplayerGame =
+        true;
+
+      playerDead =
+        false;
+
+      playerTrapped =
+        false;
+
+      player.model.visible =
+        false;
+
+      mainMenu.hide();
+
+      return;
     }
   }
 );
@@ -351,15 +437,18 @@ const deathScreen =
 // AUTO START
 // ==============================
 
-// If START AGAIN was clicked,
-// automatically start a new VS AI game.
-
 const shouldStartAI =
   new URLSearchParams(
     window.location.search
-  ).get('start') === 'ai';
+  ).get('start') ===
+  'ai';
 
-if (shouldStartAI) {
+if (
+  shouldStartAI
+) {
+
+  multiplayerGame =
+    false;
 
   gameStarted =
     true;
@@ -589,15 +678,20 @@ function animate() {
   // AI
   // ============================
 
-  for (
-    const ai of aiTadpoles
+  if (
+    !multiplayerGame
   ) {
 
-    ai.update(
-      delta,
-      scene
-    );
+    for (
+      const ai of aiTadpoles
+    ) {
 
+      ai.update(
+        delta,
+        scene
+      );
+
+    }
   }
 
   // ============================
@@ -637,16 +731,21 @@ function animate() {
     THREE.Mesh | null =
     null;
 
-  for (
-    const ai of aiTadpoles
+  if (
+    !multiplayerGame
   ) {
 
-    if (ai.bubble) {
+    for (
+      const ai of aiTadpoles
+    ) {
 
-      activeBubble =
-        ai.bubble;
+      if (ai.bubble) {
 
-      break;
+        activeBubble =
+          ai.bubble;
+
+        break;
+      }
     }
   }
 
@@ -677,7 +776,9 @@ function animate() {
 
   if (mobileBoost) {
 
-    if (!boostUsable) {
+    if (
+      !boostUsable
+    ) {
 
       mobileBoost.textContent =
         'BOOST';
@@ -720,7 +821,9 @@ function animate() {
     player.camera.position.y
   );
 
-  if (aboveWater) {
+  if (
+    aboveWater
+  ) {
 
     scene.background =
       aboveWaterColor;
@@ -770,7 +873,9 @@ function animate() {
   // FLASHLIGHT
   // ============================
 
-  if (!playerDead) {
+  if (
+    !playerDead
+  ) {
 
     updateFlashlight(
       player.camera,

@@ -2,98 +2,80 @@ import * as THREE from 'three';
 import './style.css';
 
 export class MainMenu {
-  private container: HTMLDivElement;
-  private tadpoleScene: THREE.Scene;
-  private tadpoleCamera: THREE.PerspectiveCamera;
-  private tadpoleRenderer: THREE.WebGLRenderer;
-  private tadpoleModel: THREE.Group;
 
-  private onVsAI: () => void;
-  private onCreateRoom: () => void;
-  private onJoinRoom: (roomCode: string) => void;
-  private onLeaveRoom: () => void;
+  private container: HTMLDivElement;
+
+  private tadpoleScene: THREE.Scene;
+
+  private tadpoleCamera:
+    THREE.PerspectiveCamera;
+
+  private tadpoleRenderer:
+    THREE.WebGLRenderer;
+
+  private tadpoleModel:
+    THREE.Group;
+
+  private onVsAI:
+    () => void;
+
+  private onCreateRoom:
+    () => void;
+
+  private onJoinRoom:
+    (roomCode: string) => void;
+
+  private onLeaveRoom:
+    () => void;
+
+  private onStartGame:
+    () => void;
+
+  private lobbyStartButton:
+    HTMLButtonElement | null =
+    null;
 
   constructor(
     tadpoleModel: THREE.Group,
     onVsAI: () => void,
     onCreateRoom: () => void,
     onJoinRoom: (roomCode: string) => void,
-    onLeaveRoom: () => void
+    onLeaveRoom: () => void,
+    onStartGame: () => void
   ) {
-    this.onVsAI = onVsAI;
-    this.onCreateRoom = onCreateRoom;
-    this.onJoinRoom = onJoinRoom;
-    this.onLeaveRoom = onLeaveRoom;
 
-    this.container = document.createElement('div');
-    this.container.id = 'main-menu';
-    document.body.appendChild(this.container);
+    this.onVsAI =
+      onVsAI;
 
-    this.container.innerHTML = `
-      <div class="menu-content">
+    this.onCreateRoom =
+      onCreateRoom;
 
-        <div class="menu-left">
+    this.onJoinRoom =
+      onJoinRoom;
 
-          <div class="game-title">
-            TAGPOLE
-          </div>
+    this.onLeaveRoom =
+      onLeaveRoom;
 
-          <div class="game-subtitle">
-            DON'T GET TAGGED
-          </div>
+    this.onStartGame =
+      onStartGame;
 
-          <div class="menu-buttons">
+    this.container =
+      document.createElement(
+        'div'
+      );
 
-            <button
-              id="menu-friends"
-              class="menu-button"
-            >
-              PLAY WITH FRIENDS
-            </button>
+    this.container.id =
+      'main-menu';
 
-            <button
-              id="menu-ai"
-              class="menu-button"
-            >
-              VS AI
-            </button>
+    document.body.appendChild(
+      this.container
+    );
 
-            <button
-              id="menu-settings"
-              class="menu-button"
-            >
-              SETTINGS
-            </button>
+    this.tadpoleScene =
+      new THREE.Scene();
 
-          </div>
-
-        </div>
-
-        <div class="menu-character">
-
-          <div
-            id="menu-tadpole-container"
-            class="menu-tadpole"
-          ></div>
-
-          <button
-            id="menu-customize"
-            class="customize-button"
-          >
-            CUSTOMIZE
-          </button>
-
-        </div>
-
-      </div>
-
-      <div class="menu-version">
-        TAGPOLE
-      </div>
-    `;
-
-    this.tadpoleScene = new THREE.Scene();
-    this.tadpoleScene.background = null;
+    this.tadpoleScene.background =
+      null;
 
     this.tadpoleCamera =
       new THREE.PerspectiveCamera(
@@ -178,21 +160,11 @@ export class MainMenu {
     this.tadpoleRenderer.domElement.className =
       'menu-tadpole-renderer';
 
-    const tadpoleContainer =
-      document.getElementById(
-        'menu-tadpole-container'
-      );
-
-    if (tadpoleContainer) {
-      tadpoleContainer.appendChild(
-        this.tadpoleRenderer.domElement
-      );
-    }
-
     this.tadpoleModel =
       tadpoleModel.clone(true);
 
-    this.tadpoleModel.visible = true;
+    this.tadpoleModel.visible =
+      true;
 
     this.tadpoleModel.position.set(
       0,
@@ -214,79 +186,23 @@ export class MainMenu {
       this.tadpoleModel
     );
 
-    tadpoleModel.visible = false;
+    tadpoleModel.visible =
+      false;
 
-    document
-      .getElementById('menu-ai')
-      ?.addEventListener(
-        'click',
-        () => {
-          this.hide();
-          this.onVsAI();
-        }
-      );
-
-    document
-      .getElementById('menu-friends')
-      ?.addEventListener(
-        'click',
-        () => {
-          this.showFriendsMenu();
-        }
-      );
-
-    document
-      .getElementById('menu-settings')
-      ?.addEventListener(
-        'click',
-        () => {
-          const button =
-            document.getElementById(
-              'menu-settings'
-            );
-
-          if (!button) {
-            return;
-          }
-
-          button.textContent =
-            'COMING SOON';
-
-          setTimeout(() => {
-            button.textContent =
-              'SETTINGS';
-          }, 1200);
-        }
-      );
-
-    document
-      .getElementById('menu-customize')
-      ?.addEventListener(
-        'click',
-        () => {
-          const button =
-            document.getElementById(
-              'menu-customize'
-            );
-
-          if (!button) {
-            return;
-          }
-
-          button.textContent =
-            'COMING SOON';
-
-          setTimeout(() => {
-            button.textContent =
-              'CUSTOMIZE';
-          }, 1200);
-        }
-      );
+    this.showMainMenu();
 
     this.resize();
   }
 
+  // ==============================
+  // MAIN MENU
+  // ==============================
+
   private showMainMenu() {
+
+    this.lobbyStartButton =
+      null;
+
     this.container.innerHTML = `
       <div class="menu-content">
 
@@ -350,19 +266,12 @@ export class MainMenu {
       </div>
     `;
 
-    const tadpoleContainer =
-      document.getElementById(
-        'menu-tadpole-container'
-      );
-
-    if (tadpoleContainer) {
-      tadpoleContainer.appendChild(
-        this.tadpoleRenderer.domElement
-      );
-    }
+    this.attachTadpoleRenderer();
 
     document
-      .getElementById('menu-ai')
+      .getElementById(
+        'menu-ai'
+      )
       ?.addEventListener(
         'click',
         () => {
@@ -372,7 +281,9 @@ export class MainMenu {
       );
 
     document
-      .getElementById('menu-friends')
+      .getElementById(
+        'menu-friends'
+      )
       ?.addEventListener(
         'click',
         () => {
@@ -381,10 +292,13 @@ export class MainMenu {
       );
 
     document
-      .getElementById('menu-settings')
+      .getElementById(
+        'menu-settings'
+      )
       ?.addEventListener(
         'click',
         () => {
+
           const button =
             document.getElementById(
               'menu-settings'
@@ -397,18 +311,24 @@ export class MainMenu {
           button.textContent =
             'COMING SOON';
 
-          setTimeout(() => {
-            button.textContent =
-              'SETTINGS';
-          }, 1200);
+          setTimeout(
+            () => {
+              button.textContent =
+                'SETTINGS';
+            },
+            1200
+          );
         }
       );
 
     document
-      .getElementById('menu-customize')
+      .getElementById(
+        'menu-customize'
+      )
       ?.addEventListener(
         'click',
         () => {
+
           const button =
             document.getElementById(
               'menu-customize'
@@ -421,18 +341,31 @@ export class MainMenu {
           button.textContent =
             'COMING SOON';
 
-          setTimeout(() => {
-            button.textContent =
-              'CUSTOMIZE';
-          }, 1200);
+          setTimeout(
+            () => {
+              button.textContent =
+                'CUSTOMIZE';
+            },
+            1200
+          );
         }
       );
 
-    this.container.style.display = 'flex';
+    this.container.style.display =
+      'flex';
+
     this.resize();
   }
 
+  // ==============================
+  // FRIENDS MENU
+  // ==============================
+
   private showFriendsMenu() {
+
+    this.lobbyStartButton =
+      null;
+
     this.container.innerHTML = `
       <div class="menu-content">
 
@@ -489,19 +422,12 @@ export class MainMenu {
       </div>
     `;
 
-    const tadpoleContainer =
-      document.getElementById(
-        'menu-tadpole-container'
-      );
-
-    if (tadpoleContainer) {
-      tadpoleContainer.appendChild(
-        this.tadpoleRenderer.domElement
-      );
-    }
+    this.attachTadpoleRenderer();
 
     document
-      .getElementById('menu-create-room')
+      .getElementById(
+        'menu-create-room'
+      )
       ?.addEventListener(
         'click',
         () => {
@@ -511,7 +437,9 @@ export class MainMenu {
       );
 
     document
-      .getElementById('menu-join-room')
+      .getElementById(
+        'menu-join-room'
+      )
       ?.addEventListener(
         'click',
         () => {
@@ -520,7 +448,9 @@ export class MainMenu {
       );
 
     document
-      .getElementById('menu-friends-back')
+      .getElementById(
+        'menu-friends-back'
+      )
       ?.addEventListener(
         'click',
         () => {
@@ -528,11 +458,21 @@ export class MainMenu {
         }
       );
 
-    this.container.style.display = 'flex';
+    this.container.style.display =
+      'flex';
+
     this.resize();
   }
 
+  // ==============================
+  // JOIN ROOM
+  // ==============================
+
   private showJoinRoom() {
+
+    this.lobbyStartButton =
+      null;
+
     this.container.innerHTML = `
       <div class="menu-content">
 
@@ -594,16 +534,7 @@ export class MainMenu {
       </div>
     `;
 
-    const tadpoleContainer =
-      document.getElementById(
-        'menu-tadpole-container'
-      );
-
-    if (tadpoleContainer) {
-      tadpoleContainer.appendChild(
-        this.tadpoleRenderer.domElement
-      );
-    }
+    this.attachTadpoleRenderer();
 
     const input =
       document.getElementById(
@@ -642,6 +573,7 @@ export class MainMenu {
     );
 
     const join = () => {
+
       const roomCode =
         input.value
           .trim()
@@ -670,7 +602,8 @@ export class MainMenu {
       'keydown',
       (event) => {
         if (
-          event.key === 'Enter'
+          event.key ===
+          'Enter'
         ) {
           join();
         }
@@ -689,16 +622,25 @@ export class MainMenu {
 
     this.resize();
 
-    setTimeout(() => {
-      input.focus();
-    }, 50);
+    setTimeout(
+      () => {
+        input.focus();
+      },
+      50
+    );
   }
+
+  // ==============================
+  // LOBBY
+  // ==============================
 
   showLobby(
     roomCode: string,
     playerCount: number,
-    maxPlayers: number
+    maxPlayers: number,
+    isHost: boolean
   ) {
+
     this.container.innerHTML = `
       <div class="menu-content lobby-content">
 
@@ -726,9 +668,27 @@ export class MainMenu {
               ${playerCount} / ${maxPlayers} PLAYERS
             </div>
 
-            <div class="lobby-waiting">
-              WAITING FOR PLAYERS...
-            </div>
+            ${
+              isHost
+                ? `
+                  <button
+                    id="lobby-start"
+                    class="menu-button lobby-start-button"
+                    ${
+                      playerCount < 2
+                        ? 'disabled'
+                        : ''
+                    }
+                  >
+                    START GAME
+                  </button>
+                `
+                : `
+                  <div class="lobby-waiting">
+                    WAITING FOR HOST...
+                  </div>
+                `
+            }
 
           </div>
 
@@ -757,23 +717,39 @@ export class MainMenu {
       </div>
     `;
 
-    const tadpoleContainer =
+    this.attachTadpoleRenderer();
+
+    this.lobbyStartButton =
       document.getElementById(
-        'menu-tadpole-container'
-      );
+        'lobby-start'
+      ) as HTMLButtonElement | null;
 
-    if (tadpoleContainer) {
-      tadpoleContainer.appendChild(
-        this.tadpoleRenderer.domElement
-      );
-    }
-
-    document
-      .getElementById('lobby-leave')
+    this.lobbyStartButton
       ?.addEventListener(
         'click',
         () => {
+
+          if (
+            !this.lobbyStartButton ||
+            this.lobbyStartButton.disabled
+          ) {
+            return;
+          }
+
+          this.onStartGame();
+        }
+      );
+
+    document
+      .getElementById(
+        'lobby-leave'
+      )
+      ?.addEventListener(
+        'click',
+        () => {
+
           this.onLeaveRoom();
+
           this.showFriendsMenu();
         }
       );
@@ -784,10 +760,37 @@ export class MainMenu {
     this.resize();
   }
 
+  // ==============================
+  // ATTACH TADPOLE
+  // ==============================
+
+  private attachTadpoleRenderer() {
+
+    const tadpoleContainer =
+      document.getElementById(
+        'menu-tadpole-container'
+      );
+
+    if (
+      tadpoleContainer
+    ) {
+      tadpoleContainer.appendChild(
+        this.tadpoleRenderer.domElement
+      );
+    }
+  }
+
+  // ==============================
+  // UPDATE
+  // ==============================
+
   update(
     time: number
   ) {
-    if (!this.isVisible()) {
+
+    if (
+      !this.isVisible()
+    ) {
       return;
     }
 
@@ -836,7 +839,12 @@ export class MainMenu {
     );
   }
 
+  // ==============================
+  // RESIZE
+  // ==============================
+
   resize() {
+
     const element =
       document.getElementById(
         'menu-tadpole-container'
@@ -870,19 +878,34 @@ export class MainMenu {
     );
   }
 
+  // ==============================
+  // SHOW
+  // ==============================
+
   show() {
+
     this.container.style.display =
       'flex';
 
     this.showMainMenu();
   }
 
+  // ==============================
+  // HIDE
+  // ==============================
+
   hide() {
+
     this.container.style.display =
       'none';
   }
 
+  // ==============================
+  // VISIBLE
+  // ==============================
+
   isVisible() {
+
     return (
       this.container.style.display !==
       'none'

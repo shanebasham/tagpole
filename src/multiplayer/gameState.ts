@@ -31,7 +31,9 @@ export interface GameState {
 
   players: NetworkPlayer[];
 
-  maxPlayers: number;
+  maxPlayers: 12;
+
+  hostId: string;
 }
 
 export function createGameState(): GameState {
@@ -41,5 +43,7 @@ export function createGameState(): GameState {
     players: [],
 
     maxPlayers: 12,
+
+    hostId: '',
   };
 }

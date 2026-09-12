@@ -176,6 +176,19 @@ export class MultiplayerClient {
 
     this.roomCode =
       null;
+
+    this.gameState =
+      null;
+  }
+
+  // ==============================
+  // START GAME
+  // ==============================
+
+  startGame() {
+    this.send({
+      type: 'start-game'
+    });
   }
 
   // ==============================
