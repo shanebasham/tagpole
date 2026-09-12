@@ -231,12 +231,34 @@ const mainMenu =
     },
 
     // --------------------------
-    // PLAY WITH FRIENDS
+    // CREATE ROOM
     // --------------------------
 
     () => {
 
       multiplayer.createRoom();
+
+    },
+
+    // --------------------------
+    // JOIN ROOM
+    // --------------------------
+
+    (roomCode) => {
+
+      multiplayer.joinRoom(
+        roomCode
+      );
+
+    },
+
+    // --------------------------
+    // LEAVE ROOM
+    // --------------------------
+
+    () => {
+
+      multiplayer.leaveRoom();
 
     }
   );

@@ -3,40 +3,31 @@ import './style.css';
 
 export class MainMenu {
   private container: HTMLDivElement;
-
   private tadpoleScene: THREE.Scene;
   private tadpoleCamera: THREE.PerspectiveCamera;
   private tadpoleRenderer: THREE.WebGLRenderer;
   private tadpoleModel: THREE.Group;
 
   private onVsAI: () => void;
-  private onFriends: () => void;
+  private onCreateRoom: () => void;
+  private onJoinRoom: (roomCode: string) => void;
+  private onLeaveRoom: () => void;
 
   constructor(
     tadpoleModel: THREE.Group,
     onVsAI: () => void,
-    onFriends: () => void
+    onCreateRoom: () => void,
+    onJoinRoom: (roomCode: string) => void,
+    onLeaveRoom: () => void
   ) {
     this.onVsAI = onVsAI;
-    this.onFriends = onFriends;
+    this.onCreateRoom = onCreateRoom;
+    this.onJoinRoom = onJoinRoom;
+    this.onLeaveRoom = onLeaveRoom;
 
-    // ==============================
-    // MENU CONTAINER
-    // ==============================
-
-    this.container =
-      document.createElement('div');
-
-    this.container.id =
-      'main-menu';
-
-    document.body.appendChild(
-      this.container
-    );
-
-    // ==============================
-    // MENU HTML
-    // ==============================
+    this.container = document.createElement('div');
+    this.container.id = 'main-menu';
+    document.body.appendChild(this.container);
 
     this.container.innerHTML = `
       <div class="menu-content">
@@ -101,19 +92,8 @@ export class MainMenu {
       </div>
     `;
 
-    // ==============================
-    // TADPOLE SCENE
-    // ==============================
-
-    this.tadpoleScene =
-      new THREE.Scene();
-
-    this.tadpoleScene.background =
-      null;
-
-    // ==============================
-    // TADPOLE CAMERA
-    // ==============================
+    this.tadpoleScene = new THREE.Scene();
+    this.tadpoleScene.background = null;
 
     this.tadpoleCamera =
       new THREE.PerspectiveCamera(
@@ -134,10 +114,6 @@ export class MainMenu {
       0,
       0
     );
-
-    // ==============================
-    // LIGHTING
-    // ==============================
 
     const ambientLight =
       new THREE.AmbientLight(
@@ -181,10 +157,6 @@ export class MainMenu {
       fillLight
     );
 
-    // ==============================
-    // RENDERER
-    // ==============================
-
     this.tadpoleRenderer =
       new THREE.WebGLRenderer({
         antialias: true,
@@ -217,15 +189,10 @@ export class MainMenu {
       );
     }
 
-    // ==============================
-    // CLONE PLAYER MODEL
-    // ==============================
-
     this.tadpoleModel =
       tadpoleModel.clone(true);
 
-    this.tadpoleModel.visible =
-      true;
+    this.tadpoleModel.visible = true;
 
     this.tadpoleModel.position.set(
       0,
@@ -247,52 +214,29 @@ export class MainMenu {
       this.tadpoleModel
     );
 
-    // Keep the actual gameplay model hidden.
-    tadpoleModel.visible =
-      false;
-
-    // ==============================
-    // VS AI
-    // ==============================
+    tadpoleModel.visible = false;
 
     document
-      .getElementById(
-        'menu-ai'
-      )
+      .getElementById('menu-ai')
       ?.addEventListener(
         'click',
         () => {
           this.hide();
-
           this.onVsAI();
         }
       );
 
-    // ==============================
-    // PLAY WITH FRIENDS
-    // ==============================
-
     document
-      .getElementById(
-        'menu-friends'
-      )
+      .getElementById('menu-friends')
       ?.addEventListener(
         'click',
         () => {
-          this.hide();
-
-          this.onFriends();
+          this.showFriendsMenu();
         }
       );
 
-    // ==============================
-    // SETTINGS
-    // ==============================
-
     document
-      .getElementById(
-        'menu-settings'
-      )
+      .getElementById('menu-settings')
       ?.addEventListener(
         'click',
         () => {
@@ -315,14 +259,8 @@ export class MainMenu {
         }
       );
 
-    // ==============================
-    // CUSTOMIZE
-    // ==============================
-
     document
-      .getElementById(
-        'menu-customize'
-      )
+      .getElementById('menu-customize')
       ?.addEventListener(
         'click',
         () => {
@@ -345,153 +283,416 @@ export class MainMenu {
         }
       );
 
-    // ==============================
-    // INITIAL SIZE
-    // ==============================
-
     this.resize();
   }
 
-  // ==============================
-  // UPDATE
-  // ==============================
+  private showMainMenu() {
+    this.container.innerHTML = `
+      <div class="menu-content">
 
-  update(
-    time: number
-  ) {
-    if (!this.isVisible()) {
-      return;
-    }
+        <div class="menu-left">
 
-    const seconds =
-      time * 0.001;
+          <div class="game-title">
+            TAGPOLE
+          </div>
 
-    // ------------------------------
-    // TADPOLE SWIMMING
-    // ------------------------------
+          <div class="game-subtitle">
+            DON'T GET TAGGED
+          </div>
 
-    this.tadpoleModel.position.y =
-      Math.sin(
-        seconds * 1.5
-      ) * 0.16;
+          <div class="menu-buttons">
 
-    this.tadpoleModel.position.x =
-      Math.sin(
-        seconds * 0.7
-      ) * 0.08;
+            <button
+              id="menu-friends"
+              class="menu-button"
+            >
+              PLAY WITH FRIENDS
+            </button>
 
-    this.tadpoleModel.rotation.y =
-      Math.PI * 0.75 +
-      Math.sin(
-        seconds * 0.8
-      ) * 0.12;
+            <button
+              id="menu-ai"
+              class="menu-button"
+            >
+              VS AI
+            </button>
 
-    this.tadpoleModel.rotation.z =
-      Math.sin(
-        seconds * 1.2
-      ) * 0.06;
+            <button
+              id="menu-settings"
+              class="menu-button"
+            >
+              SETTINGS
+            </button>
 
-    this.tadpoleModel.rotation.x =
-      Math.sin(
-        seconds * 1.7
-      ) * 0.035;
+          </div>
 
-    // ------------------------------
-    // SMALL BODY BOB
-    // ------------------------------
+        </div>
 
-    const scale =
-      1.7 +
-      Math.sin(
-        seconds * 1.5
-      ) * 0.035;
+        <div class="menu-character">
 
-    this.tadpoleModel.scale.setScalar(
-      scale
-    );
+          <div
+            id="menu-tadpole-container"
+            class="menu-tadpole"
+          ></div>
 
-    // ------------------------------
-    // RENDER
-    // ------------------------------
+          <button
+            id="menu-customize"
+            class="customize-button"
+          >
+            CUSTOMIZE
+          </button>
 
-    this.tadpoleRenderer.render(
-      this.tadpoleScene,
-      this.tadpoleCamera
-    );
-  }
+        </div>
 
-  // ==============================
-  // RESIZE
-  // ==============================
+      </div>
 
-  resize() {
-    const element =
+      <div class="menu-version">
+        TAGPOLE
+      </div>
+    `;
+
+    const tadpoleContainer =
       document.getElementById(
         'menu-tadpole-container'
       );
 
-    if (!element) {
+    if (tadpoleContainer) {
+      tadpoleContainer.appendChild(
+        this.tadpoleRenderer.domElement
+      );
+    }
+
+    document
+      .getElementById('menu-ai')
+      ?.addEventListener(
+        'click',
+        () => {
+          this.hide();
+          this.onVsAI();
+        }
+      );
+
+    document
+      .getElementById('menu-friends')
+      ?.addEventListener(
+        'click',
+        () => {
+          this.showFriendsMenu();
+        }
+      );
+
+    document
+      .getElementById('menu-settings')
+      ?.addEventListener(
+        'click',
+        () => {
+          const button =
+            document.getElementById(
+              'menu-settings'
+            );
+
+          if (!button) {
+            return;
+          }
+
+          button.textContent =
+            'COMING SOON';
+
+          setTimeout(() => {
+            button.textContent =
+              'SETTINGS';
+          }, 1200);
+        }
+      );
+
+    document
+      .getElementById('menu-customize')
+      ?.addEventListener(
+        'click',
+        () => {
+          const button =
+            document.getElementById(
+              'menu-customize'
+            );
+
+          if (!button) {
+            return;
+          }
+
+          button.textContent =
+            'COMING SOON';
+
+          setTimeout(() => {
+            button.textContent =
+              'CUSTOMIZE';
+          }, 1200);
+        }
+      );
+
+    this.container.style.display = 'flex';
+    this.resize();
+  }
+
+  private showFriendsMenu() {
+    this.container.innerHTML = `
+      <div class="menu-content">
+
+        <div class="menu-left">
+
+          <div class="game-title">
+            TAGPOLE
+          </div>
+
+          <div class="game-subtitle">
+            PLAY WITH FRIENDS
+          </div>
+
+          <div class="menu-buttons">
+
+            <button
+              id="menu-create-room"
+              class="menu-button"
+            >
+              CREATE ROOM
+            </button>
+
+            <button
+              id="menu-join-room"
+              class="menu-button"
+            >
+              JOIN ROOM
+            </button>
+
+            <button
+              id="menu-friends-back"
+              class="menu-button menu-back-button"
+            >
+              ← BACK
+            </button>
+
+          </div>
+
+        </div>
+
+        <div class="menu-character">
+
+          <div
+            id="menu-tadpole-container"
+            class="menu-tadpole"
+          ></div>
+
+        </div>
+
+      </div>
+
+      <div class="menu-version">
+        TAGPOLE
+      </div>
+    `;
+
+    const tadpoleContainer =
+      document.getElementById(
+        'menu-tadpole-container'
+      );
+
+    if (tadpoleContainer) {
+      tadpoleContainer.appendChild(
+        this.tadpoleRenderer.domElement
+      );
+    }
+
+    document
+      .getElementById('menu-create-room')
+      ?.addEventListener(
+        'click',
+        () => {
+          this.hide();
+          this.onCreateRoom();
+        }
+      );
+
+    document
+      .getElementById('menu-join-room')
+      ?.addEventListener(
+        'click',
+        () => {
+          this.showJoinRoom();
+        }
+      );
+
+    document
+      .getElementById('menu-friends-back')
+      ?.addEventListener(
+        'click',
+        () => {
+          this.showMainMenu();
+        }
+      );
+
+    this.container.style.display = 'flex';
+    this.resize();
+  }
+
+  private showJoinRoom() {
+    this.container.innerHTML = `
+      <div class="menu-content">
+
+        <div class="menu-left">
+
+          <div class="game-title">
+            TAGPOLE
+          </div>
+
+          <div class="game-subtitle">
+            JOIN ROOM
+          </div>
+
+          <div class="join-room-menu">
+
+            <input
+              id="join-room-input"
+              class="join-room-input"
+              type="text"
+              maxlength="4"
+              placeholder="ROOM CODE"
+              autocomplete="off"
+              autocapitalize="characters"
+              spellcheck="false"
+              inputmode="text"
+            />
+
+            <button
+              id="join-room-button"
+              class="menu-button"
+            >
+              JOIN
+            </button>
+
+            <button
+              id="join-room-back"
+              class="menu-button menu-back-button"
+            >
+              ← BACK
+            </button>
+
+          </div>
+
+        </div>
+
+        <div class="menu-character">
+
+          <div
+            id="menu-tadpole-container"
+            class="menu-tadpole"
+          ></div>
+
+        </div>
+
+      </div>
+
+      <div class="menu-version">
+        TAGPOLE
+      </div>
+    `;
+
+    const tadpoleContainer =
+      document.getElementById(
+        'menu-tadpole-container'
+      );
+
+    if (tadpoleContainer) {
+      tadpoleContainer.appendChild(
+        this.tadpoleRenderer.domElement
+      );
+    }
+
+    const input =
+      document.getElementById(
+        'join-room-input'
+      ) as HTMLInputElement | null;
+
+    const joinButton =
+      document.getElementById(
+        'join-room-button'
+      );
+
+    const backButton =
+      document.getElementById(
+        'join-room-back'
+      );
+
+    if (!input) {
       return;
     }
 
-    const width =
-      Math.max(
-        element.clientWidth,
-        1
-      );
-
-    const height =
-      Math.max(
-        element.clientHeight,
-        1
-      );
-
-    this.tadpoleCamera.aspect =
-      width / height;
-
-    this.tadpoleCamera.updateProjectionMatrix();
-
-    this.tadpoleRenderer.setSize(
-      width,
-      height,
-      false
+    input.addEventListener(
+      'input',
+      () => {
+        input.value =
+          input.value
+            .toUpperCase()
+            .replace(
+              /[^A-Z0-9]/g,
+              ''
+            )
+            .slice(
+              0,
+              4
+            );
+      }
     );
-  }
 
-  // ==============================
-  // SHOW
-  // ==============================
+    const join = () => {
+      const roomCode =
+        input.value
+          .trim()
+          .toUpperCase();
 
-  show() {
+      if (
+        roomCode.length !== 4
+      ) {
+        input.focus();
+        return;
+      }
+
+      this.hide();
+
+      this.onJoinRoom(
+        roomCode
+      );
+    };
+
+    joinButton?.addEventListener(
+      'click',
+      join
+    );
+
+    input.addEventListener(
+      'keydown',
+      (event) => {
+        if (
+          event.key === 'Enter'
+        ) {
+          join();
+        }
+      }
+    );
+
+    backButton?.addEventListener(
+      'click',
+      () => {
+        this.showFriendsMenu();
+      }
+    );
+
     this.container.style.display =
       'flex';
 
     this.resize();
+
+    setTimeout(() => {
+      input.focus();
+    }, 50);
   }
-
-  // ==============================
-  // HIDE
-  // ==============================
-
-  hide() {
-    this.container.style.display =
-      'none';
-  }
-
-  // ==============================
-  // VISIBLE
-  // ==============================
-
-  isVisible() {
-    return (
-      this.container.style.display !==
-      'none'
-    );
-  }
-  
-    // ==============================
-  // LOBBY
-  // ==============================
 
   showLobby(
     roomCode: string,
@@ -544,6 +745,13 @@ export class MainMenu {
 
       </div>
 
+      <button
+        id="lobby-leave"
+        class="menu-button lobby-leave-button"
+      >
+        LEAVE ROOM
+      </button>
+
       <div class="menu-version">
         TAGPOLE
       </div>
@@ -560,8 +768,124 @@ export class MainMenu {
       );
     }
 
-    this.container.style.display = 'flex';
+    document
+      .getElementById('lobby-leave')
+      ?.addEventListener(
+        'click',
+        () => {
+          this.onLeaveRoom();
+          this.showFriendsMenu();
+        }
+      );
+
+    this.container.style.display =
+      'flex';
 
     this.resize();
+  }
+
+  update(
+    time: number
+  ) {
+    if (!this.isVisible()) {
+      return;
+    }
+
+    const seconds =
+      time * 0.001;
+
+    this.tadpoleModel.position.y =
+      Math.sin(
+        seconds * 1.5
+      ) * 0.16;
+
+    this.tadpoleModel.position.x =
+      Math.sin(
+        seconds * 0.7
+      ) * 0.08;
+
+    this.tadpoleModel.rotation.y =
+      Math.PI * 0.75 +
+      Math.sin(
+        seconds * 0.8
+      ) * 0.12;
+
+    this.tadpoleModel.rotation.z =
+      Math.sin(
+        seconds * 1.2
+      ) * 0.06;
+
+    this.tadpoleModel.rotation.x =
+      Math.sin(
+        seconds * 1.7
+      ) * 0.035;
+
+    const scale =
+      1.7 +
+      Math.sin(
+        seconds * 1.5
+      ) * 0.035;
+
+    this.tadpoleModel.scale.setScalar(
+      scale
+    );
+
+    this.tadpoleRenderer.render(
+      this.tadpoleScene,
+      this.tadpoleCamera
+    );
+  }
+
+  resize() {
+    const element =
+      document.getElementById(
+        'menu-tadpole-container'
+      );
+
+    if (!element) {
+      return;
+    }
+
+    const width =
+      Math.max(
+        element.clientWidth,
+        1
+      );
+
+    const height =
+      Math.max(
+        element.clientHeight,
+        1
+      );
+
+    this.tadpoleCamera.aspect =
+      width / height;
+
+    this.tadpoleCamera.updateProjectionMatrix();
+
+    this.tadpoleRenderer.setSize(
+      width,
+      height,
+      false
+    );
+  }
+
+  show() {
+    this.container.style.display =
+      'flex';
+
+    this.showMainMenu();
+  }
+
+  hide() {
+    this.container.style.display =
+      'none';
+  }
+
+  isVisible() {
+    return (
+      this.container.style.display !==
+      'none'
+    );
   }
 }

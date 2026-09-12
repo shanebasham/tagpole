@@ -58,7 +58,6 @@ const server =
             url.pathname
           );
 
-    // Prevent paths from escaping dist/
     const distPath =
       path.resolve(
         process.cwd(),
@@ -78,7 +77,6 @@ const server =
       return;
     }
 
-    // SPA fallback
     if (
       !fs.existsSync(filePath) ||
       fs.statSync(filePath).isDirectory()
@@ -159,8 +157,37 @@ const server =
 
 const wss =
   new WebSocketServer({
-    server,
+    noServer: true,
   });
+
+server.on(
+  'upgrade',
+  (request, socket, head) => {
+
+    if (
+      request.headers.upgrade?.toLowerCase() !==
+      'websocket'
+    ) {
+      socket.destroy();
+      return;
+    }
+
+    wss.handleUpgrade(
+      request,
+      socket,
+      head,
+      (webSocket) => {
+
+        wss.emit(
+          'connection',
+          webSocket,
+          request
+        );
+
+      }
+    );
+  }
+);
 
 console.log(
   `TAGPOLE multiplayer server starting on ${HOST}:${PORT}`

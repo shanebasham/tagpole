@@ -455,10 +455,6 @@
   letter-spacing: 3px;
 }
 
-
-
-
-
 /* =================================
    MOBILE
    ================================= */
@@ -466,7 +462,6 @@
 @media (
   max-width: 700px
 ) {
-
   #main-menu {
     align-items: center;
     justify-content: center;
@@ -476,8 +471,6 @@
     width: 90vw;
     flex-direction: column;
     gap: 0;
-
-    /* Move the entire menu toward the center */
     transform: translateY(-20px);
   }
 
@@ -543,7 +536,12 @@
 }
 
 .lobby-label {
-  color: rgba(185,225,230,0.55);
+  color: rgba(
+    185,
+    225,
+    230,
+    0.55
+  );
   font-size: 11px;
   font-weight: bold;
   letter-spacing: 4px;
@@ -552,20 +550,42 @@
 
 .lobby-code {
   color: #d9f7f8;
-  font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+  font-family:
+    "Trebuchet MS",
+    Arial,
+    Helvetica,
+    sans-serif;
   font-size: 64px;
   font-weight: 900;
   letter-spacing: 12px;
   line-height: 1;
   text-shadow:
     0 3px 0 #174b56,
-    0 8px 25px rgba(0,0,0,0.65),
-    0 0 30px rgba(100,210,220,0.14);
+    0 8px 25px
+      rgba(
+        0,
+        0,
+        0,
+        0.65
+      ),
+    0 0 30px
+      rgba(
+        100,
+        210,
+        220,
+        0.14
+      );
 }
 
 .lobby-players {
   margin-top: 28px;
-  color: rgba(210,242,244,0.78);
+  color:
+    rgba(
+      210,
+      242,
+      244,
+      0.78
+    );
   font-size: 13px;
   font-weight: bold;
   letter-spacing: 3px;
@@ -573,7 +593,13 @@
 
 .lobby-waiting {
   margin-top: 12px;
-  color: rgba(170,215,220,0.42);
+  color:
+    rgba(
+      170,
+      215,
+      220,
+      0.42
+    );
   font-size: 10px;
   font-weight: bold;
   letter-spacing: 3px;
@@ -596,11 +622,110 @@
   }
 }
 
+/* =================================
+   JOIN ROOM
+   ================================= */
+
+.join-room-menu {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.join-room-input {
+  width: 240px;
+  height: 64px;
+  box-sizing: border-box;
+  border: 3px solid white;
+  border-radius: 12px;
+  background:
+    rgba(
+      0,
+      0,
+      0,
+      0.45
+    );
+  color: white;
+  text-align: center;
+  font-family: inherit;
+  font-size: 30px;
+  font-weight: 900;
+  letter-spacing: 8px;
+  outline: none;
+  text-transform: uppercase;
+}
+
+.join-room-input::placeholder {
+  color:
+    rgba(
+      255,
+      255,
+      255,
+      0.55
+    );
+  letter-spacing: 2px;
+}
+
+.join-room-input:focus {
+  border-color: white;
+  background:
+    rgba(
+      0,
+      0,
+      0,
+      0.6
+    );
+}
+
+.join-room-menu .menu-button {
+  width: 240px;
+}
+
+/* =================================
+   SMALL TOP-RIGHT NAV BUTTONS
+   ================================= */
+
+.menu-back-button,
+.lobby-leave-button {
+  position: fixed !important;
+  top: 20px !important;
+  right: 20px !important;
+  width: 130px !important;
+  height: 40px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  font-size: 10px !important;
+  letter-spacing: 2px !important;
+  z-index: 10002 !important;
+}
+
+@media (max-width: 700px) {
+  .menu-back-button,
+  .lobby-leave-button {
+    top: 14px !important;
+    right: 14px !important;
+    width: 110px !important;
+    height: 36px !important;
+    font-size: 9px !important;
+  }
+}
+
 @media (
   max-width: 700px
 ) and (
   orientation: landscape
 ) {
+  .menu-back-button,
+  .lobby-leave-button {
+    top: 14px !important;
+    right: 14px !important;
+    width: 110px !important;
+    height: 36px !important;
+    font-size: 9px !important;
+  }
+
   .lobby-code {
     font-size: 42px;
     letter-spacing: 7px;
