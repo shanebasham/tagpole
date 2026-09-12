@@ -7,6 +7,18 @@ import { PlayerCamera } from './playerCamera';
 import { PlayerDeath } from './playerDeath';
 import { createPlayerModel } from './playerModel';
 
+import {
+  Bubbles
+} from './combat/bubbles';
+
+import type {
+  CombatTarget
+} from './combat/bubbles';
+
+import {
+  Attack
+} from './combat/attack';
+
 import type {
   NetworkPlayer
 } from '../multiplayer/gameState';
@@ -25,21 +37,33 @@ export class Player {
   private cameraSystem: PlayerCamera;
   private death: PlayerDeath;
 
+  private bubbles: Bubbles;
+  private attack: Attack;
+
   constructor(
     scene: THREE.Scene,
     camera: THREE.PerspectiveCamera,
     controls: Controls
   ) {
-    this.camera = camera;
-    this.controls = controls;
+    this.camera =
+      camera;
+
+    this.controls =
+      controls;
 
     this.id =
-      typeof crypto.randomUUID === 'function'
+      typeof crypto.randomUUID ===
+      'function'
         ? crypto.randomUUID()
-        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        : `${Date.now()}-${Math.random()
+            .toString(36)
+            .slice(2)}`;
 
-    this.isIt = false;
-    this.isFrozen = false;
+    this.isIt =
+      false;
+
+    this.isFrozen =
+      false;
 
     this.model =
       createPlayerModel();
@@ -68,12 +92,31 @@ export class Player {
         camera,
         this.model
       );
+
+    this.bubbles =
+      new Bubbles();
+
+    this.attack =
+      new Attack(
+        this.camera,
+        this.bubbles,
+        {
+          cooldown: 5,
+          duration: 1.2,
+          bubbleInterval: 0.12,
+          headShake: false,
+          attackRange: 0,
+          facingThreshold: 0,
+        }
+      );
   }
 
   update(
     delta: number
   ) {
-    if (this.death.active) {
+    if (
+      this.death.active
+    ) {
       this.death.update(
         delta
       );
@@ -85,7 +128,9 @@ export class Player {
       return;
     }
 
-    if (this.isFrozen) {
+    if (
+      this.isFrozen
+    ) {
       this.updateTrappedPlayer();
 
       this.cameraSystem.updateTrapped();
@@ -98,6 +143,59 @@ export class Player {
     this.movement.update(
       delta
     );
+  }
+
+  updateCombat(
+    delta: number,
+    scene: THREE.Scene
+  ) {
+    this.bubbles.update(
+      delta,
+      scene,
+      0
+    );
+
+    this.attack.update(
+      delta,
+      scene,
+      this.camera
+    );
+  }
+
+  startAttack() {
+    if (
+      this.death.active ||
+      this.isFrozen
+    ) {
+      return false;
+    }
+
+    if (
+      this.attack.isAttacking
+    ) {
+      return false;
+    }
+
+    if (
+      this.attack.cooldownRemaining >
+      0
+    ) {
+      return false;
+    }
+
+    return this.attack.start();
+  }
+
+  setCombatTargets(
+    targets: CombatTarget[]
+  ) {
+    this.bubbles.setTargets(
+      targets
+    );
+  }
+
+  getAttackCooldown() {
+    return this.attack.cooldownRemaining;
   }
 
   private updateTrappedPlayer() {
@@ -124,12 +222,15 @@ export class Player {
 
   setTrapped(
     trapped: boolean,
-    bubble: THREE.Mesh | null = null
+    bubble:
+      THREE.Mesh | null = null
   ) {
     this.isFrozen =
       trapped;
 
-    if (trapped) {
+    if (
+      trapped
+    ) {
       this.model.visible =
         true;
 
@@ -147,7 +248,8 @@ export class Player {
   startDeathFloat(
     onReachedSurface: () => void
   ) {
-    this.isFrozen = false;
+    this.isFrozen =
+      false;
 
     this.cameraSystem.startDeathCamera();
 
@@ -164,30 +266,44 @@ export class Player {
     return this.camera.position;
   }
 
-  // ==============================
-  // NETWORK STATE
-  // ==============================
-
-  getNetworkState(): NetworkPlayer {
+  getNetworkState():
+    NetworkPlayer {
     return {
-      id: this.id,
+      id:
+        this.id,
 
-      x: this.camera.position.x,
-      y: this.camera.position.y,
-      z: this.camera.position.z,
+      x:
+        this.camera.position.x,
 
-      yaw: this.controls.yaw,
-      pitch: this.controls.pitch,
+      y:
+        this.camera.position.y,
 
-      vx: this.movement.velocity.x,
-      vy: this.movement.velocity.y,
-      vz: this.movement.velocity.z,
+      z:
+        this.camera.position.z,
 
-      alive: !this.death.active,
+      yaw:
+        this.controls.yaw,
 
-      trapped: this.isFrozen,
+      pitch:
+        this.controls.pitch,
 
-      isDrowned: this.isIt,
+      vx:
+        this.movement.velocity.x,
+
+      vy:
+        this.movement.velocity.y,
+
+      vz:
+        this.movement.velocity.z,
+
+      alive:
+        !this.death.active,
+
+      trapped:
+        this.isFrozen,
+
+      isDrowned:
+        this.isIt,
     };
   }
 }

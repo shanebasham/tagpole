@@ -65,6 +65,10 @@ import {
 } from './menu/mainMenu';
 
 import type {
+  CombatTarget
+} from './player/combat/bubbles';
+
+import type {
   NetworkPlayer
 } from './multiplayer/gameState';
 
@@ -419,8 +423,6 @@ multiplayer.setStateListener(
         }
       }
 
-      // Remove players who left
-
       for (
         const [
           id,
@@ -625,6 +627,43 @@ hud.setPlayersAlive(
 
 hud.setCrosshairVisible(
   true
+);
+
+// ==============================
+// MOBILE ATTACK BUTTON
+// ==============================
+
+const mobileAttack =
+  document.getElementById(
+    'mobile-attack'
+  );
+
+mobileAttack?.addEventListener(
+  'touchstart',
+  (event) => {
+
+    event.preventDefault();
+
+    if (
+      !gameStarted ||
+      playerDead ||
+      playerTrapped
+    ) {
+      return;
+    }
+
+    if (
+      player.getAttackCooldown() > 0
+    ) {
+      return;
+    }
+
+    player.startAttack();
+
+  },
+  {
+    passive: false
+  }
 );
 
 // ==============================
@@ -893,6 +932,38 @@ window.addEventListener(
 );
 
 // ==============================
+// PC ATTACK
+// ==============================
+
+window.addEventListener(
+  'mousedown',
+  (event) => {
+
+    if (
+      event.button !== 0
+    ) {
+      return;
+    }
+
+    if (
+      !gameStarted ||
+      playerDead ||
+      playerTrapped
+    ) {
+      return;
+    }
+
+    if (
+      player.getAttackCooldown() > 0
+    ) {
+      return;
+    }
+
+    player.startAttack();
+  }
+);
+
+// ==============================
 // MOBILE EXIT BUTTON
 // ==============================
 
@@ -1129,6 +1200,21 @@ for (
 }
 
 // ==============================
+// TARGETS
+// ==============================
+
+const playerCombatTargets:
+  CombatTarget[] =
+  aiTadpoles.map(
+    (ai) =>
+      ai.getCombatTarget()
+  );
+
+player.setCombatTargets(
+  playerCombatTargets
+);
+
+// ==============================
 // CLOCK
 // ==============================
 
@@ -1192,7 +1278,8 @@ function animate() {
   ) {
 
     for (
-      const ai of aiTadpoles
+      const ai of
+      aiTadpoles
     ) {
 
       ai.update(
@@ -1208,6 +1295,11 @@ function animate() {
 
   player.update(
     delta
+  );
+
+  player.updateCombat(
+    delta,
+    scene
   );
 
   // ============================
@@ -1268,10 +1360,13 @@ function animate() {
   ) {
 
     for (
-      const ai of aiTadpoles
+      const ai of
+      aiTadpoles
     ) {
 
-      if (ai.bubble) {
+      if (
+        ai.bubble
+      ) {
 
         activeBubble =
           ai.bubble;
@@ -1283,6 +1378,22 @@ function animate() {
 
   hud.updateTrapped(
     activeBubble
+  );
+
+  // ============================
+  // ATTACK HUD
+  // ============================
+
+  const attackCooldown =
+    player.getAttackCooldown();
+
+  const attackUsable =
+    !playerTrapped &&
+    !playerDead;
+
+  hud.updateAttack(
+    attackCooldown,
+    attackUsable
   );
 
   // ============================
@@ -1301,12 +1412,18 @@ function animate() {
     boostUsable
   );
 
+  // ============================
+  // MOBILE BOOST
+  // ============================
+
   const mobileBoost =
     document.getElementById(
       'mobile-boost'
     );
 
-  if (mobileBoost) {
+  if (
+    mobileBoost
+  ) {
 
     if (
       !boostUsable
@@ -1336,6 +1453,47 @@ function animate() {
 
         mobileBoost.textContent =
           `BOOST ${boostCooldown.toFixed(1)}`;
+
+      }
+    }
+  }
+
+  // ============================
+  // MOBILE ATTACK
+  // ============================
+
+  if (
+    mobileAttack
+  ) {
+
+    if (
+      !attackUsable
+    ) {
+
+      mobileAttack.textContent =
+        'BURST';
+
+      mobileAttack.classList.add(
+        'locked'
+      );
+
+    } else {
+
+      mobileAttack.classList.remove(
+        'locked'
+      );
+
+      if (
+        attackCooldown <= 0
+      ) {
+
+        mobileAttack.textContent =
+          'BURST';
+
+      } else {
+
+        mobileAttack.textContent =
+          attackCooldown.toFixed(1);
 
       }
     }

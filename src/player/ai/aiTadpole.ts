@@ -1,19 +1,47 @@
 import * as THREE from 'three';
-import type { RockCollider } from '../../world/rocks';
 
-import { AIBubbles } from './aiBubbles';
-import { AIAttack } from './aiAttack';
-import { AIMovement } from './aiMovement';
+import type {
+  RockCollider
+} from '../../world/rocks';
+
+import type {
+  CombatTarget
+} from '../combat/bubbles';
+
+import {
+  Bubbles
+} from '../combat/bubbles';
+
+import {
+  Attack
+} from '../combat/attack';
+
+import {
+  AIMovement
+} from './aiMovement';
 
 export class AITadpole {
-  model: THREE.Group;
+
+  model:
+    THREE.Group;
 
   private target:
     THREE.PerspectiveCamera;
 
-  private movement: AIMovement;
-  private bubbles: AIBubbles;
-  private attack: AIAttack;
+  private movement:
+    AIMovement;
+
+  private bubbles:
+    Bubbles;
+
+  private attack:
+    Attack;
+
+  private trapped =
+    false;
+
+  private dead =
+    false;
 
   constructor(
     scene: THREE.Scene,
@@ -24,7 +52,8 @@ export class AITadpole {
     ) => void,
     onPlayerDied: () => void
   ) {
-    this.target = target;
+    this.target =
+      target;
 
     this.model =
       this.createTadpole();
@@ -40,10 +69,23 @@ export class AITadpole {
     );
 
     this.bubbles =
-      new AIBubbles(
-        target,
-        onPlayerTrapped,
-        onPlayerDied
+      new Bubbles();
+
+    this.attack =
+      new Attack(
+        this.model,
+        this.bubbles,
+        {
+          attackRange: 12,
+          facingThreshold: 0.95,
+          cooldown: 3,
+          duration: 1.2,
+          bubbleInterval: 0.12,
+          headShake: true,
+          aimTarget: () => {
+            return this.target.position;
+          },
+        }
       );
 
     this.movement =
@@ -52,20 +94,53 @@ export class AITadpole {
         rocks
       );
 
-    this.attack =
-      new AIAttack(
-        this.model,
-        this.bubbles
-      );
+    const playerTarget:
+      CombatTarget = {
+
+      getPosition: () => {
+        return this.target.position;
+      },
+
+      isAlive: () => {
+        return true;
+      },
+
+      isTrapped: () => {
+        return false;
+      },
+
+      trap: (
+        bubble: THREE.Mesh
+      ) => {
+        onPlayerTrapped(
+          bubble
+        );
+
+        return true;
+      },
+
+      updateTrappedPosition: (
+        _position: THREE.Vector3
+      ) => {
+        // Player handles its own
+        // trapped bubble position.
+
+      },
+
+      onBubbleReachedSurface:
+        () => {
+          onPlayerDied();
+        },
+    };
+
+    this.bubbles.setTargets([
+      playerTarget
+    ]);
   }
 
   private createTadpole() {
     const tadpole =
       new THREE.Group();
-
-    // ==============================
-    // BODY
-    // ==============================
 
     const bodyGeometry =
       new THREE.SphereGeometry(
@@ -96,17 +171,6 @@ export class AITadpole {
       body
     );
 
-    // ==============================
-    // HEAD
-    // ==============================
-    //
-    // The eyes are placed inside a
-    // separate head group.
-    //
-    // This lets AIAttack shake the
-    // head without rotating the body.
-    //
-
     const head =
       new THREE.Group();
 
@@ -116,10 +180,6 @@ export class AITadpole {
     tadpole.add(
       head
     );
-
-    // ==============================
-    // EYES
-    // ==============================
 
     const eyeGeometry =
       new THREE.SphereGeometry(
@@ -163,10 +223,6 @@ export class AITadpole {
       rightEye
     );
 
-    // ==============================
-    // TAIL
-    // ==============================
-
     const tailGeometry =
       new THREE.ConeGeometry(
         0.42,
@@ -196,10 +252,6 @@ export class AITadpole {
     tadpole.add(
       tail
     );
-
-    // ==============================
-    // BELLY
-    // ==============================
 
     const bellyGeometry =
       new THREE.SphereGeometry(
@@ -243,15 +295,20 @@ export class AITadpole {
     delta: number,
     scene: THREE.Scene
   ) {
-    const bubbleKilledPlayer =
-      this.bubbles.update(
-        delta,
-        scene,
-        this.movement.time
-      );
+    if (
+      this.dead
+    ) {
+      return;
+    }
+
+    this.bubbles.update(
+      delta,
+      scene,
+      this.movement.time
+    );
 
     if (
-      bubbleKilledPlayer
+      this.trapped
     ) {
       this.movement.stop();
 
@@ -259,12 +316,13 @@ export class AITadpole {
     }
 
     this.attack.tryAttack(
-      this.target
+      this.target.position
     );
 
     this.attack.update(
       delta,
-      scene
+      scene,
+      this.model
     );
 
     if (
@@ -275,23 +333,184 @@ export class AITadpole {
       return;
     }
 
-    const targetPosition =
-      this.bubbles.isPlayerTrapped &&
-      this.bubbles.bubble
-        ? this.bubbles.bubble.position
-        : this.target.position;
-
     this.movement.update(
       delta,
-      targetPosition
+      this.target.position
     );
+  }
+
+  getCombatTarget():
+    CombatTarget {
+    return {
+
+      getPosition: () => {
+        return this.model.position;
+      },
+
+      isAlive: () => {
+        return !this.dead;
+      },
+
+      isTrapped: () => {
+        return this.trapped;
+      },
+
+      trap: (
+        bubble: THREE.Mesh
+      ) => {
+        if (
+          this.dead ||
+          this.trapped
+        ) {
+          return false;
+        }
+
+        this.trapped =
+          true;
+
+        this.attack.reset();
+
+        this.movement.stop();
+
+        this.model.visible =
+          true;
+
+        this.model.position.copy(
+          bubble.position
+        );
+
+        this.model.position.y -=
+          0.15;
+
+        return true;
+      },
+
+      updateTrappedPosition: (
+        position: THREE.Vector3
+      ) => {
+        if (
+          !this.trapped ||
+          this.dead
+        ) {
+          return;
+        }
+
+        this.model.position.copy(
+          position
+        );
+
+        this.model.position.y -=
+          0.15;
+      },
+
+      onBubbleReachedSurface:
+        () => {
+          this.onBubbleReachedSurface();
+        },
+    };
+  }
+
+  trap(
+    bubble: THREE.Mesh
+  ) {
+    if (
+      this.dead ||
+      this.trapped
+    ) {
+      return false;
+    }
+
+    this.trapped =
+      true;
+
+    this.attack.reset();
+
+    this.movement.stop();
+
+    this.model.visible =
+      true;
+
+    this.model.position.copy(
+      bubble.position
+    );
+
+    this.model.position.y -=
+      0.15;
+
+    return true;
+  }
+
+  updateTrappedPosition(
+    position: THREE.Vector3
+  ) {
+    if (
+      !this.trapped ||
+      this.dead
+    ) {
+      return;
+    }
+
+    this.model.position.copy(
+      position
+    );
+
+    this.model.position.y -=
+      0.15;
+  }
+
+  onBubbleReachedSurface() {
+    if (
+      this.dead
+    ) {
+      return;
+    }
+
+    this.trapped =
+      false;
+
+    this.dead =
+      true;
+
+    this.model.visible =
+      false;
+  }
+
+  isAlive() {
+    return !this.dead;
+  }
+
+  isTrapped() {
+    return this.trapped;
+  }
+
+  get isPlayerTrapped() {
+    return this.bubbles.isTrapping;
   }
 
   get bubble() {
     return this.bubbles.bubble;
   }
 
-  get isPlayerTrapped() {
-    return this.bubbles.isPlayerTrapped;
+  get isAttacking() {
+    return this.attack.isAttacking;
+  }
+
+  reset(
+    scene: THREE.Scene
+  ) {
+    this.trapped =
+      false;
+
+    this.dead =
+      false;
+
+    this.model.visible =
+      true;
+
+    this.attack.reset();
+
+    this.bubbles.reset(
+      scene
+    );
   }
 }

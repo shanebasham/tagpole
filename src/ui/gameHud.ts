@@ -42,6 +42,16 @@ export function createGameHud() {
       </div>
     </div>
 
+    <div id="attack-status">
+      <div id="attack-key">
+        Left Click
+      </div>
+
+      <div id="attack-text">
+        BURST READY
+      </div>
+    </div>
+
     <div id="depth-meter">
       <div id="depth-value">
         30.0m
@@ -110,6 +120,21 @@ export function createGameHud() {
   const boostText =
     document.getElementById(
       'boost-text'
+    );
+
+  const attackStatus =
+    document.getElementById(
+      'attack-status'
+    );
+
+  const attackKey =
+    document.getElementById(
+      'attack-key'
+    );
+
+  const attackText =
+    document.getElementById(
+      'attack-text'
     );
 
   return {
@@ -254,6 +279,57 @@ export function createGameHud() {
 
       boostText.textContent =
         `BOOST ${cooldown.toFixed(1)}`;
+    },
+
+    updateAttack(
+      cooldown: number,
+      usable: boolean
+    ) {
+      if (
+        !attackStatus ||
+        !attackKey ||
+        !attackText
+      ) {
+        return;
+      }
+
+      if (!usable) {
+        attackStatus.classList.add(
+          'disabled'
+        );
+
+        attackStatus.classList.remove(
+          'cooldown'
+        );
+
+        attackText.textContent =
+          'UNAVAILABLE';
+
+        return;
+      }
+
+      if (cooldown <= 0) {
+        attackStatus.classList.remove(
+          'cooldown',
+          'disabled'
+        );
+
+        attackText.textContent =
+          'BURST READY';
+
+        return;
+      }
+
+      attackStatus.classList.add(
+        'cooldown'
+      );
+
+      attackStatus.classList.remove(
+        'disabled'
+      );
+
+      attackText.textContent =
+        `BURST ${cooldown.toFixed(1)}`;
     },
 
     setCrosshairVisible(

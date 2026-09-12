@@ -1,8 +1,10 @@
 /* ============================== GAME HUD ============================== */
+
 #game-hud{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;font-family:Arial,Helvetica,sans-serif;color:#d8f4f7;z-index:10;transition:opacity .25s ease}
 #game-hud.hidden{opacity:0}
 
 /* ============================== PLAYER STATUS ============================== */
+
 #player-status{position:absolute;top:28px;left:30px;display:flex;flex-direction:column;gap:5px;text-shadow:0 0 5px #000,0 0 12px #000}
 #role-label{font-size:18px;font-weight:bold;letter-spacing:3px;color:#d8f4f7}
 #role-label.drowned{color:#e5b6c1;text-shadow:0 0 5px #000,0 0 12px #3a111b}
@@ -10,38 +12,44 @@
 #status-label.dead{color:#e5b6c1;opacity:.9}
 
 /* ============================== PLAYERS ALIVE ============================== */
+
 #players-status{position:absolute;top:28px;right:30px;display:flex;flex-direction:column;align-items:flex-end;gap:4px;text-shadow:0 0 5px #000,0 0 12px #000}
 #players-value{font-size:25px;font-weight:bold;letter-spacing:2px}
 #players-label{font-size:10px;letter-spacing:2px;opacity:.6}
 
 /* ============================== CROSSHAIR ============================== */
+
 #crosshair{position:absolute;top:50%;left:50%;width:12px;height:12px;transform:translate(-50%,-50%);transition:opacity .2s ease}
 #crosshair.hidden{opacity:0}
 .crosshair-dot{position:absolute;top:50%;left:50%;width:3px;height:3px;transform:translate(-50%,-50%);border-radius:50%;background:rgba(220,245,247,.9);box-shadow:0 0 5px rgba(200,240,245,.5)}
 
 /* ============================== DEPTH ============================== */
+
 #depth-meter{position:absolute;left:30px;bottom:28px;display:flex;flex-direction:column;gap:3px;color:#d8f4f7;text-shadow:0 0 5px #000,0 0 12px #000}
 #depth-value{font-size:24px;font-weight:bold;letter-spacing:1px}
 #depth-label{font-size:10px;letter-spacing:3px;opacity:.6}
 
 /* ============================== TRAPPED ============================== */
+
 #trapped-status{position:absolute;left:50%;bottom:55px;transform:translateX(-50%) translateY(15px);display:flex;flex-direction:column;align-items:center;gap:7px;opacity:0;transition:opacity .3s ease,transform .3s ease;text-shadow:0 0 6px #000,0 0 14px #000}
 #trapped-status.visible{opacity:1;transform:translateX(-50%) translateY(0)}
 #trapped-title{font-size:24px;font-weight:bold;letter-spacing:6px;color:#e5b6c1}
 #trapped-distance{font-size:13px;letter-spacing:3px;color:#d8f4f7;opacity:.85}
 #trapped-warning{margin-top:3px;font-size:9px;letter-spacing:3px;opacity:.5}
 
-/* ============================== BOOST ============================== */
-#boost-status{position:absolute;left:50%;bottom:28px;transform:translateX(-50%);display:flex;align-items:center;gap:9px;opacity:.85;font-family:Arial,Helvetica,sans-serif;text-shadow:0 0 5px #000,0 0 12px #000;transition:opacity .2s ease,transform .2s ease}
-#boost-key{min-width:42px;padding:5px 8px;border:1px solid rgba(216,244,247,.55);background:rgba(216,244,247,.08);text-align:center;font-size:10px;font-weight:bold;letter-spacing:2px}
-#boost-text{font-size:9px;letter-spacing:2px;opacity:.7}
-#boost-status.cooldown{opacity:.45}
-#boost-status.cooldown #boost-key{border-color:rgba(216,244,247,.25);background:rgba(216,244,247,.03)}
-#boost-status.disabled{opacity:0}
-#mobile-boost.locked{opacity:.45}
-#mobile-boost.locked::after{content:'';position:absolute;width:85%;height:2px;background:currentColor;transform:rotate(-45deg);left:7.5%;top:50%;pointer-events:none}
+/* ============================== BOOST + BURST ============================== */
+
+#boost-status,#attack-status{position:absolute;left:50%;display:flex;align-items:center;gap:9px;transform:translateX(-50%);font-family:Arial,Helvetica,sans-serif;text-shadow:0 0 5px #000,0 0 12px #000;transition:opacity .2s ease}
+#boost-status{bottom:28px}
+#attack-status{bottom:76px}
+#boost-key,#attack-key{min-width:42px;padding:5px 8px;border:1px solid rgba(216,244,247,.55);background:rgba(216,244,247,.08);text-align:center;font-size:10px;font-weight:bold;letter-spacing:2px}
+#boost-text,#attack-text{min-width:75px;font-size:9px;letter-spacing:2px;opacity:.7}
+#boost-status.cooldown,#attack-status.cooldown{opacity:.45}
+#boost-status.cooldown #boost-key,#attack-status.cooldown #attack-key{border-color:rgba(216,244,247,.25);background:rgba(216,244,247,.03)}
+#boost-status.disabled,#attack-status.disabled{opacity:0}
 
 /* ============================== DEATH SCREEN ============================== */
+
 #death-screen{position:fixed;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(0,0,0,.45);color:#d8f4f7;font-family:Arial,Helvetica,sans-serif;z-index:100;pointer-events:auto}
 #death-screen.visible{display:flex}
 #death-title{font-size:64px;font-weight:bold;letter-spacing:8px;margin-bottom:12px;text-shadow:0 0 8px #000,0 0 20px #000}
@@ -54,42 +62,34 @@
 #play-again-button:disabled:hover{background:rgba(20,65,75,.55);border-color:rgba(175,225,230,.4);transform:none}
 
 /* ============================== MOBILE CONTROLS ============================== */
-#mobile-controls{display:none;position:fixed;inset:0;z-index:50;pointer-events:none;touch-action:none}
 
-/* ============================== MOBILE JOYSTICK ============================== */
+#mobile-controls{display:none;position:fixed;inset:0;z-index:50;pointer-events:none;touch-action:none}
 #mobile-joystick{position:absolute;left:24px;bottom:28px;width:130px;height:130px;pointer-events:auto;touch-action:none}
 #joystick-base{position:absolute;left:50%;top:50%;width:110px;height:110px;transform:translate(-50%,-50%);border:2px solid rgba(216,244,247,.35);border-radius:50%;background:rgba(3,19,29,.35);box-shadow:0 0 15px rgba(0,0,0,.3)}
 #joystick-stick{position:absolute;left:50%;top:50%;width:48px;height:48px;transform:translate(-50%,-50%);border:2px solid rgba(216,244,247,.55);border-radius:50%;background:rgba(216,244,247,.12)}
-
-/* ============================== MOBILE LOOK ============================== */
 #mobile-look{position:absolute;left:38%;top:0;width:62%;height:100%;pointer-events:auto;touch-action:none}
 
-/* ============================== MOBILE BOOST ============================== */
-#mobile-boost{position:absolute;right:24px;bottom:34px;width:92px;height:92px;pointer-events:auto;border:2px solid rgba(216,244,247,.5);border-radius:50%;background:rgba(80,150,160,.18);color:#d8f4f7;font-family:Arial,Helvetica,sans-serif;font-size:12px;font-weight:bold;letter-spacing:2px;-webkit-tap-highlight-color:transparent;touch-action:none}
-#mobile-boost:active{background:rgba(100,190,200,.35);transform:scale(.94)}
+/* ============================== MOBILE ACTION BUTTONS ============================== */
+
+#mobile-boost,#mobile-attack{position:absolute;bottom:34px;width:108px;height:44px;padding:0;border:1px solid rgba(216,244,247,.4);border-radius:6px;background:rgba(3,19,29,.72);color:#d8f4f7;font-family:Arial,Helvetica,sans-serif;font-size:10px;font-weight:bold;letter-spacing:1.5px;text-align:center;pointer-events:auto;touch-action:none;box-sizing:border-box;z-index:55}
+#mobile-boost{right:142px}
+#mobile-attack{right:24px}
+#mobile-boost:active,#mobile-attack:active{background:rgba(55,130,142,.45);transform:scale(.97)}
+#mobile-boost.locked,#mobile-attack.locked{opacity:.45}
 
 /* ============================== MOBILE UP / DOWN ============================== */
+
 #mobile-up,#mobile-down{position:absolute;right:135px;width:55px;height:55px;pointer-events:auto;border:1px solid rgba(216,244,247,.4);border-radius:50%;background:rgba(3,19,29,.4);color:#d8f4f7;font-size:20px;-webkit-tap-highlight-color:transparent;touch-action:none}
 #mobile-up{bottom:102px}
 #mobile-down{bottom:36px}
 #mobile-up:active,#mobile-down:active{background:rgba(216,244,247,.15)}
 
-/* ============================== SMALL SCREENS ============================== */
-@media(max-width:600px){
-  #player-status{top:20px;left:20px}
-  #players-status{top:20px;right:20px}
-  #depth-meter{left:20px;bottom:20px}
-  #role-label{font-size:15px}
-  #players-value,#depth-value{font-size:21px}
-  #death-title{font-size:42px;letter-spacing:5px}
-  #death-subtitle{font-size:12px}
-  #boost-status{bottom:20px}
-}
-
 /* ============================== MOBILE HUD ============================== */
+
 @media(pointer:coarse){
   #mobile-controls{display:block}
-  #boost-status{bottom:145px;opacity:.75}
+  #boost-status{bottom:145px}
+  #attack-status{bottom:106px}
   #depth-meter{left:24px;bottom:175px}
   #player-status{top:20px;left:20px}
   #players-status{top:20px;right:20px}
@@ -98,20 +98,59 @@
   .crosshair-dot{width:3px;height:3px}
 }
 
-/* ============================== LANDSCAPE MOBILE ============================== */
+/* ============================== LANDSCAPE ============================== */
+
 @media(pointer:coarse) and (orientation:landscape){
   #mobile-joystick{left:20px;bottom:20px}
-  #mobile-boost{right:20px;bottom:25px}
+  #mobile-boost{right:142px;bottom:25px}
+  #mobile-attack{right:24px;bottom:25px}
   #mobile-up{right:130px;bottom:90px}
   #mobile-down{right:130px;bottom:25px}
   #depth-meter{left:20px;bottom:165px}
   #boost-status{bottom:20px}
+  #attack-status{bottom:65px}
+}
+
+/* ============================== SMALL SCREENS ============================== */
+
+@media(max-width:600px){
+  #player-status{top:20px;left:20px}
+  #players-status{top:20px;right:20px}
+  #depth-meter{left:20px;bottom:20px}
+  #role-label{font-size:15px}
+  #players-value,#depth-value{font-size:21px}
+  #death-title{font-size:42px;letter-spacing:5px}
+  #death-subtitle{font-size:12px}
+}
+
+/* ============================== EXIT / PAUSE ============================== */
+
+#exit-menu{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.5);font-family:Arial,Helvetica,sans-serif;z-index:200;pointer-events:auto}
+#exit-menu.visible{display:flex}
+#exit-menu-panel{min-width:300px;padding:38px 42px;border:1px solid rgba(175,225,230,.3);border-radius:10px;background:rgba(3,19,29,.92);box-shadow:0 0 35px rgba(0,0,0,.6);text-align:center}
+#exit-menu-title{color:#d8f4f7;font-size:38px;font-weight:bold;letter-spacing:7px;text-shadow:0 0 8px #000}
+#exit-menu-subtitle{margin-top:10px;color:#d8f4f7;font-size:11px;letter-spacing:3px;opacity:.55}
+#exit-menu-buttons{display:flex;flex-direction:column;align-items:center;gap:12px;margin-top:28px}
+#resume-button,#exit-to-menu-button{width:220px;height:52px;border:1px solid rgba(175,225,230,.4);border-radius:8px;background:rgba(20,65,75,.55);color:#d8f4f7;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:bold;letter-spacing:3px;cursor:pointer;transition:background .15s ease,border-color .15s ease,transform .15s ease}
+#resume-button:hover,#exit-to-menu-button:hover{background:rgba(55,130,142,.4);border-color:rgba(210,245,247,.7);transform:translateY(-2px)}
+#resume-button:active,#exit-to-menu-button:active{transform:scale(.97)}
+#mobile-exit{display:none;position:fixed;top:20px;right:20px;z-index:60;width:58px;height:38px;border:1px solid rgba(216,244,247,.35);border-radius:6px;background:rgba(3,19,29,.5);color:#d8f4f7;font-family:Arial,Helvetica,sans-serif;font-size:9px;font-weight:bold;letter-spacing:2px;pointer-events:auto;touch-action:none}
+#mobile-exit:active{background:rgba(216,244,247,.15);transform:scale(.95)}
+
+@media(pointer:coarse){#mobile-exit{display:block}}
+
+@media(max-width:600px){
+  #exit-menu-panel{min-width:0;width:calc(100% - 40px);padding:32px 20px}
+  #exit-menu-title{font-size:30px;letter-spacing:5px}
+  #exit-menu-subtitle{font-size:10px}
+  #resume-button,#exit-to-menu-button{width:min(220px,80vw)}
 }
 
 /* ============================== TOUCH PROTECTION ============================== */
+
 #game-hud,#death-screen,#mobile-controls{user-select:none;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;touch-action:none}
 #game-hud *,#death-screen *{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
-#mobile-controls button,#mobile-joystick,#joystick-base,#joystick-stick,#mobile-look,#mobile-boost,#mobile-up,#mobile-down,#spectate-button,#play-again-button,#main-menu-button{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-user-drag:none;-webkit-tap-highlight-color:transparent;touch-action:none}
+#mobile-controls button,#mobile-joystick,#joystick-base,#joystick-stick,#mobile-look,#mobile-boost,#mobile-attack,#mobile-up,#mobile-down,#spectate-button,#play-again-button,#main-menu-button{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;-webkit-user-drag:none;-webkit-tap-highlight-color:transparent;touch-action:none}
 
 @media(pointer:coarse){
   html,body{overflow:hidden;position:fixed;width:100%;height:100%;touch-action:none}
