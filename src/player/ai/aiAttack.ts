@@ -163,7 +163,6 @@ export class AIAttack {
   update(
     delta: number,
     scene: THREE.Scene,
-    zigzagTime: number
   ) {
     if (
       this.attackCooldown > 0
@@ -208,8 +207,7 @@ export class AIAttack {
 
       this.bubbles.createSmallBubble(
         scene,
-        this.model,
-        zigzagTime
+        this.model
       );
     }
 

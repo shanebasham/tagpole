@@ -14,32 +14,21 @@ type BubblePop = {
 
 export class AIBubbles {
   private surfaceY = 30;
-
   // Speed of the main trapping bubble.
   private bubbleRiseSpeed = 2.0;
-
   // How far above the surface
   // the trapped player rises.
   private bubblePopHeight = 2.5;
-
   // Projectile bubble speed.
   private smallBubbleSpeed = 7.0;
-
   // How close the projectile needs
   // to get before it counts as a hit.
   private playerHitRadius = 0.45;
-
   private smallBubbles: SmallBubble[] = [];
   private bubblePops: BubblePop[] = [];
-
-  private bubbleSpawnTimer = 0;
-  private bubbleSpawnInterval = 0.12;
-
   private target: THREE.PerspectiveCamera;
-
   private onPlayerTrapped:
     (bubble: THREE.Mesh) => void;
-
   private onPlayerDied:
     () => void;
 
@@ -150,7 +139,6 @@ export class AIBubbles {
   createSmallBubble(
     scene: THREE.Scene,
     model: THREE.Group,
-    time: number
   ) {
     const radius =
       THREE.MathUtils.randFloat(
@@ -756,14 +744,8 @@ export class AIBubbles {
 
   reset() {
     this.bubble = null;
-
-    this.isPlayerTrapped =
-      false;
-
+    this.isPlayerTrapped = false;
     this.smallBubbles = [];
-
     this.bubblePops = [];
-
-    this.bubbleSpawnTimer = 0;
   }
 }

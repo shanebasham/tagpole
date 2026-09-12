@@ -264,8 +264,7 @@ export class AITadpole {
 
     this.attack.update(
       delta,
-      scene,
-      this.movement.time
+      scene
     );
 
     if (
