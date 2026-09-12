@@ -1,22 +1,24 @@
+import http from 'http';
+import path from 'path';
+import fs from 'fs';
 import { WebSocketServer, WebSocket } from 'ws';
 import { randomUUID } from 'crypto';
 
-const PORT = 3001;
+const PORT =
+  Number(process.env.PORT) || 3001;
+
+const HOST = '0.0.0.0';
 
 interface Player {
   id: string;
-
   x: number;
   y: number;
   z: number;
-
   yaw: number;
   pitch: number;
-
   vx: number;
   vy: number;
   vz: number;
-
   alive: boolean;
   trapped: boolean;
   isDrowned: boolean;
@@ -30,26 +32,153 @@ interface Room {
 const rooms =
   new Map<string, Room>();
 
+// ==============================
+// HTTP SERVER
+// ==============================
+
+const server =
+  http.createServer((request, response) => {
+
+    const url =
+      new URL(
+        request.url || '/',
+        `http://${request.headers.host || 'localhost'}`
+      );
+
+    let filePath =
+      url.pathname === '/'
+        ? path.join(
+            process.cwd(),
+            'dist',
+            'index.html'
+          )
+        : path.join(
+            process.cwd(),
+            'dist',
+            url.pathname
+          );
+
+    // Prevent paths from escaping dist/
+    const distPath =
+      path.resolve(
+        process.cwd(),
+        'dist'
+      );
+
+    filePath =
+      path.resolve(filePath);
+
+    if (
+      !filePath.startsWith(
+        distPath
+      )
+    ) {
+      response.writeHead(403);
+      response.end('Forbidden');
+      return;
+    }
+
+    // SPA fallback
+    if (
+      !fs.existsSync(filePath) ||
+      fs.statSync(filePath).isDirectory()
+    ) {
+      filePath =
+        path.join(
+          distPath,
+          'index.html'
+        );
+    }
+
+    if (!fs.existsSync(filePath)) {
+      response.writeHead(404);
+      response.end(
+        'TAGPOLE build not found.'
+      );
+      return;
+    }
+
+    const extension =
+      path.extname(filePath);
+
+    const contentTypes: Record<
+      string,
+      string
+    > = {
+      '.html':
+        'text/html; charset=utf-8',
+      '.js':
+        'application/javascript',
+      '.css':
+        'text/css',
+      '.json':
+        'application/json',
+      '.svg':
+        'image/svg+xml',
+      '.png':
+        'image/png',
+      '.jpg':
+        'image/jpeg',
+      '.jpeg':
+        'image/jpeg',
+      '.webp':
+        'image/webp',
+      '.ico':
+        'image/x-icon',
+    };
+
+    const contentType =
+      contentTypes[extension] ||
+      'application/octet-stream';
+
+    try {
+      const file =
+        fs.readFileSync(filePath);
+
+      response.writeHead(
+        200,
+        {
+          'Content-Type':
+            contentType,
+        }
+      );
+
+      response.end(file);
+
+    } catch {
+      response.writeHead(500);
+      response.end(
+        'Internal server error.'
+      );
+    }
+  });
+
+// ==============================
+// WEBSOCKET SERVER
+// ==============================
+
 const wss =
   new WebSocketServer({
-    port: PORT,
+    server,
   });
 
 console.log(
-  `TAGPOLE multiplayer server running on port ${PORT}`
+  `TAGPOLE multiplayer server starting on ${HOST}:${PORT}`
 );
 
 // ==============================
-// ROOM CODE
+// ROOM SYSTEM
 // ==============================
 
 function createRoomCode() {
+
   const characters =
     'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
   let code = '';
 
   do {
+
     code = '';
 
     for (
@@ -57,14 +186,17 @@ function createRoomCode() {
       i < 4;
       i++
     ) {
+
       code +=
         characters[
           Math.floor(
             Math.random() *
-              characters.length
+            characters.length
           )
         ];
+
     }
+
   } while (
     rooms.has(code)
   );
@@ -80,52 +212,50 @@ function send(
   socket: WebSocket,
   message: unknown
 ) {
+
   if (
     socket.readyState ===
     WebSocket.OPEN
   ) {
+
     socket.send(
-      JSON.stringify(
-        message
-      )
+      JSON.stringify(message)
     );
+
   }
 }
 
 // ==============================
-// BROADCAST STATE
+// BROADCAST ROOM STATE
 // ==============================
 
 function broadcastRoomState(
   room: Room
 ) {
+
   const players =
     Array.from(
       room.players.values()
     );
 
   const state = {
-    phase:
-      'lobby',
-
+    phase: 'lobby',
     players,
-
-    maxPlayers:
-      12,
+    maxPlayers: 12,
   };
 
   for (
     const socket of room.players.keys()
   ) {
+
     send(
       socket,
       {
-        type:
-          'game-state',
-
+        type: 'game-state',
         state,
       }
     );
+
   }
 }
 
@@ -141,10 +271,10 @@ wss.on(
       randomUUID();
 
     let currentRoom:
-      Room | null =
-      null;
+      Room | null = null;
 
     const player: Player = {
+
       id: playerId,
 
       x: 0,
@@ -170,36 +300,34 @@ wss.on(
     send(
       socket,
       {
-        type:
-          'connected',
-
+        type: 'connected',
         playerId,
       }
     );
 
-    // ============================
+    // ==========================
     // MESSAGE
-    // ============================
+    // ==========================
 
     socket.on(
       'message',
       (data) => {
 
-        let message:
-          any;
+        let message: any;
 
         try {
+
           message =
             JSON.parse(
               data.toString()
             );
+
         } catch {
+
           send(
             socket,
             {
-              type:
-                'error',
-
+              type: 'error',
               message:
                 'Invalid message.',
             }
@@ -217,15 +345,12 @@ wss.on(
           'create-room'
         ) {
 
-          if (
-            currentRoom
-          ) {
+          if (currentRoom) {
+
             send(
               socket,
               {
-                type:
-                  'error',
-
+                type: 'error',
                 message:
                   'Already in a room.',
               }
@@ -238,6 +363,7 @@ wss.on(
             createRoomCode();
 
           const room: Room = {
+
             code,
 
             players:
@@ -266,7 +392,6 @@ wss.on(
             {
               type:
                 'room-created',
-
               roomCode:
                 code,
             }
@@ -288,15 +413,12 @@ wss.on(
           'join-room'
         ) {
 
-          if (
-            currentRoom
-          ) {
+          if (currentRoom) {
+
             send(
               socket,
               {
-                type:
-                  'error',
-
+                type: 'error',
                 message:
                   'Already in a room.',
               }
@@ -314,19 +436,14 @@ wss.on(
               .toUpperCase();
 
           const room =
-            rooms.get(
-              code
-            );
+            rooms.get(code);
 
-          if (
-            !room
-          ) {
+          if (!room) {
+
             send(
               socket,
               {
-                type:
-                  'error',
-
+                type: 'error',
                 message:
                   'Room not found.',
               }
@@ -339,12 +456,11 @@ wss.on(
             room.players.size >=
             12
           ) {
+
             send(
               socket,
               {
-                type:
-                  'error',
-
+                type: 'error',
                 message:
                   'Room is full.',
               }
@@ -370,7 +486,6 @@ wss.on(
             {
               type:
                 'room-joined',
-
               roomCode:
                 code,
             }
@@ -392,9 +507,7 @@ wss.on(
           'player-state'
         ) {
 
-          if (
-            !currentRoom
-          ) {
+          if (!currentRoom) {
             return;
           }
 
@@ -414,9 +527,7 @@ wss.on(
               socket
             );
 
-          if (
-            !storedPlayer
-          ) {
+          if (!storedPlayer) {
             return;
           }
 
@@ -491,9 +602,7 @@ wss.on(
           'leave-room'
         ) {
 
-          if (
-            !currentRoom
-          ) {
+          if (!currentRoom) {
             return;
           }
 
@@ -502,17 +611,16 @@ wss.on(
             currentRoom
           );
 
-          currentRoom =
-            null;
+          currentRoom = null;
 
           return;
         }
       }
     );
 
-    // ============================
+    // ==========================
     // DISCONNECT
-    // ============================
+    // ==========================
 
     socket.on(
       'close',
@@ -522,14 +630,15 @@ wss.on(
           `Player disconnected: ${playerId}`
         );
 
-        if (
-          currentRoom
-        ) {
+        if (currentRoom) {
+
           removePlayer(
             socket,
             currentRoom
           );
+
         }
+
       }
     );
   }
@@ -543,6 +652,7 @@ function removePlayer(
   socket: WebSocket,
   room: Room
 ) {
+
   room.players.delete(
     socket
   );
@@ -552,9 +662,9 @@ function removePlayer(
   );
 
   if (
-    room.players.size ===
-    0
+    room.players.size === 0
   ) {
+
     rooms.delete(
       room.code
     );
@@ -570,3 +680,19 @@ function removePlayer(
     room
   );
 }
+
+// ==============================
+// START SERVER
+// ==============================
+
+server.listen(
+  PORT,
+  HOST,
+  () => {
+
+    console.log(
+      `TAGPOLE server listening on ${HOST}:${PORT}`
+    );
+
+  }
+);

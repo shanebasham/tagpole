@@ -181,8 +181,13 @@ multiplayer.setStatusListener(
   }
 );
 
+const multiplayerProtocol =
+  window.location.protocol === 'https:'
+    ? 'wss:'
+    : 'ws:';
+
 multiplayer.connect(
-  'ws://localhost:3001'
+  `${multiplayerProtocol}//${window.location.host}`
 );
 
 // ==============================
