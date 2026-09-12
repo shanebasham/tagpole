@@ -1,0 +1,216 @@
+import * as THREE from 'three';
+
+export type RockCollider = {
+  position: THREE.Vector3;
+  radius: number;
+  height: number;
+};
+
+// ==============================
+// CREATE ROCK
+// ==============================
+
+function createRock(
+  scene: THREE.Scene,
+  x: number,
+  z: number
+): RockCollider {
+  const rockGeometry =
+    new THREE.DodecahedronGeometry(
+      1,
+      Math.random() > 0.5 ? 1 : 0
+    );
+
+  const rockMaterial =
+    new THREE.MeshStandardMaterial({
+      color: THREE.MathUtils.randInt(
+        0x183b43,
+        0x294950
+      ),
+      roughness: 1,
+    });
+
+  const rock = new THREE.Mesh(
+    rockGeometry,
+    rockMaterial
+  );
+
+  const scale =
+    THREE.MathUtils.randFloat(
+      0.5,
+      3.5
+    );
+
+  const width =
+    THREE.MathUtils.randFloat(
+      0.7,
+      1.5
+    );
+
+  const height =
+    THREE.MathUtils.randFloat(
+      0.5,
+      1.4
+    );
+
+  const depth =
+    THREE.MathUtils.randFloat(
+      0.7,
+      1.5
+    );
+
+  rock.position.set(
+    x,
+    -15 +
+      scale *
+        height *
+        0.4,
+    z
+  );
+
+  rock.scale.set(
+    scale * width,
+    scale * height,
+    scale * depth
+  );
+
+  rock.rotation.set(
+    Math.random() * Math.PI,
+    Math.random() * Math.PI,
+    Math.random() * Math.PI
+  );
+
+  scene.add(rock);
+
+  return {
+    position: rock.position.clone(),
+
+    radius:
+      scale *
+      Math.max(
+        width,
+        depth
+      ) *
+      0.75,
+
+    height:
+      scale *
+      height *
+      1.5,
+  };
+}
+
+// ==============================
+// CREATE ROCKS
+// ==============================
+
+export function createRocks(
+  scene: THREE.Scene
+): RockCollider[] {
+  const rockColliders: RockCollider[] = [];
+
+  // ============================
+  // RANDOM ROCK AREAS
+  // ============================
+
+  const rockClusterCount = 15;
+
+  for (
+    let cluster = 0;
+    cluster < rockClusterCount;
+    cluster++
+  ) {
+    const centerX =
+      THREE.MathUtils.randFloat(
+        -50,
+        50
+      );
+
+    const centerZ =
+      THREE.MathUtils.randFloat(
+        -50,
+        50
+      );
+
+    // Some clusters are dense,
+    // some are more spread out.
+    const clusterSize =
+      THREE.MathUtils.randFloat(
+        2,
+        7
+      );
+
+    const rockCount =
+      THREE.MathUtils.randInt(
+        2,
+        6
+      );
+
+    for (
+      let i = 0;
+      i < rockCount;
+      i++
+    ) {
+      const angle =
+        Math.random() *
+        Math.PI *
+        2;
+
+      const distance =
+        THREE.MathUtils.randFloat(
+          0,
+          clusterSize
+        );
+
+      const x =
+        centerX +
+        Math.cos(angle) *
+          distance;
+
+      const z =
+        centerZ +
+        Math.sin(angle) *
+          distance;
+
+      rockColliders.push(
+        createRock(
+          scene,
+          x,
+          z
+        )
+      );
+    }
+  }
+
+  // ============================
+  // RANDOM INDIVIDUAL ROCKS
+  // ============================
+
+  for (
+    let i = 0;
+    i < 20;
+    i++
+  ) {
+    const x =
+      THREE.MathUtils.randFloat(
+        -52,
+        52
+      );
+
+    const z =
+      THREE.MathUtils.randFloat(
+        -52,
+        52
+      );
+
+    rockColliders.push(
+      createRock(
+        scene,
+        x,
+        z
+      )
+    );
+  }
+
+  return rockColliders;
+}

@@ -1,0 +1,612 @@
+/* =================================
+   TAGPOLE MAIN MENU
+   ================================= */
+
+#main-menu {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background:
+    radial-gradient(
+      ellipse at 72% 48%,
+      rgba(
+        24,
+        108,
+        124,
+        0.22
+      ),
+      transparent 45%
+    ),
+    radial-gradient(
+      ellipse at 20% 85%,
+      rgba(
+        15,
+        75,
+        90,
+        0.16
+      ),
+      transparent 40%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(
+        1,
+        12,
+        19,
+        0.98
+      ),
+      rgba(
+        2,
+        20,
+        29,
+        0.99
+      )
+    );
+  font-family:
+    Arial,
+    Helvetica,
+    sans-serif;
+  user-select: none;
+}
+
+/* =================================
+   WATER ATMOSPHERE
+   ================================= */
+
+#main-menu::before {
+  content: '';
+  position: absolute;
+  inset: -30%;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      ellipse at 25% 25%,
+      rgba(
+        100,
+        210,
+        220,
+        0.045
+      ),
+      transparent 30%
+    ),
+    radial-gradient(
+      ellipse at 75% 70%,
+      rgba(
+        80,
+        180,
+        200,
+        0.035
+      ),
+      transparent 35%
+    );
+  animation:
+    menu-water 14s
+    ease-in-out infinite;
+}
+
+@keyframes menu-water {
+  0% {
+    transform:
+      translate(
+        -2%,
+        -1%
+      )
+      scale(1);
+  }
+
+  50% {
+    transform:
+      translate(
+        2%,
+        1%
+      )
+      scale(1.05);
+  }
+
+  100% {
+    transform:
+      translate(
+        -2%,
+        -1%
+      )
+      scale(1);
+  }
+}
+
+/* =================================
+   CONTENT
+   ================================= */
+
+.menu-content {
+  position: relative;
+  z-index: 2;
+  width: min(
+    1100px,
+    90vw
+  );
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 70px;
+}
+
+/* =================================
+   LEFT SIDE
+   ================================= */
+
+.menu-left {
+  width: 52%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+/* =================================
+   GAME TITLE
+   ================================= */
+
+.game-title {
+  color: #d9f7f8;
+  font-family:
+    "Trebuchet MS",
+    Arial,
+    Helvetica,
+    sans-serif;
+  font-size:
+    clamp(
+      76px,
+      10vw,
+      132px
+    );
+  font-weight: 900;
+  letter-spacing: -8px;
+  line-height: 0.8;
+  transform:
+    rotate(-2deg);
+  text-shadow:
+    0 4px 0 #174b56,
+    0 8px 25px
+      rgba(
+        0,
+        0,
+        0,
+        0.65
+      ),
+    0 0 35px
+      rgba(
+        100,
+        210,
+        220,
+        0.14
+      );
+  pointer-events: none;
+}
+
+/* =================================
+   SUBTITLE
+   ================================= */
+
+.game-subtitle {
+  margin-top: 20px;
+  color:
+    rgba(
+      185,
+      225,
+      230,
+      0.62
+    );
+  font-size: 12px;
+  font-weight: bold;
+  letter-spacing: 5px;
+}
+
+/* =================================
+   BUTTONS
+   ================================= */
+
+.menu-buttons {
+  width: 370px;
+  margin-top: 62px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.menu-button {
+  width: 100%;
+  height: 68px;
+  padding: 0 20px;
+  border:
+    2px solid
+    rgba(
+      175,
+      225,
+      230,
+      0.32
+    );
+  border-radius: 12px;
+  background:
+    rgba(
+      25,
+      75,
+      86,
+      0.38
+    );
+  color: #d8f4f7;
+  font-family:
+    Arial,
+    Helvetica,
+    sans-serif;
+  font-size: 14px;
+  font-weight: bold;
+  letter-spacing: 3px;
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    background 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color:
+    transparent;
+}
+
+.menu-button:hover {
+  transform:
+    translateX(7px);
+  background:
+    rgba(
+      55,
+      130,
+      142,
+      0.35
+    );
+  border-color:
+    rgba(
+      200,
+      240,
+      243,
+      0.65
+    );
+  box-shadow:
+    0 0 30px
+      rgba(
+        80,
+        190,
+        200,
+        0.12
+      );
+}
+
+.menu-button:active {
+  transform:
+    translateX(3px)
+    scale(0.98);
+}
+
+/* =================================
+   RIGHT SIDE
+   ================================= */
+
+.menu-character {
+  width: 42%;
+  min-height: 470px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* =================================
+   TADPOLE VIEWPORT
+   ================================= */
+
+.menu-tadpole {
+  position: relative;
+  width: 380px;
+  height: 340px;
+  max-width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Glow behind the tadpole */
+
+.menu-tadpole::before {
+  content: '';
+  position: absolute;
+  width: 250px;
+  height: 190px;
+  border-radius: 50%;
+  background:
+    radial-gradient(
+      ellipse,
+      rgba(
+        70,
+        190,
+        205,
+        0.16
+      ),
+      transparent 70%
+    );
+  pointer-events: none;
+  animation:
+    tadpole-glow 3s
+    ease-in-out infinite;
+}
+
+/* Three.js canvas */
+
+.menu-tadpole-renderer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+}
+
+@keyframes tadpole-glow {
+  0%,
+  100% {
+    transform:
+      scale(0.9);
+    opacity: 0.5;
+  }
+
+  50% {
+    transform:
+      scale(1.08);
+    opacity: 1;
+  }
+}
+
+/* =================================
+   CUSTOMIZE
+   ================================= */
+
+.customize-button {
+  width: 200px;
+  height: 44px;
+  margin-top: 4px;
+  border:
+    1px solid
+    rgba(
+      175,
+      225,
+      230,
+      0.28
+    );
+  border-radius: 8px;
+  background:
+    rgba(
+      10,
+      40,
+      48,
+      0.5
+    );
+  color:
+    rgba(
+      210,
+      242,
+      244,
+      0.8
+    );
+  font-family:
+    Arial,
+    Helvetica,
+    sans-serif;
+  font-size: 11px;
+  font-weight: bold;
+  letter-spacing: 3px;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color:
+    transparent;
+}
+
+.customize-button:hover {
+  background:
+    rgba(
+      45,
+      110,
+      120,
+      0.35
+    );
+  border-color:
+    rgba(
+      190,
+      240,
+      245,
+      0.55
+    );
+}
+
+.customize-button:active {
+  transform:
+    scale(0.98);
+}
+
+/* =================================
+   VERSION
+   ================================= */
+
+.menu-version {
+  position: absolute;
+  right: 18px;
+  bottom: 14px;
+  z-index: 3;
+  color:
+    rgba(
+      170,
+      215,
+      220,
+      0.2
+    );
+  font-size: 9px;
+  letter-spacing: 3px;
+}
+
+
+
+
+
+/* =================================
+   MOBILE
+   ================================= */
+
+@media (
+  max-width: 700px
+) {
+
+  #main-menu {
+    align-items: center;
+    justify-content: center;
+  }
+
+  .menu-content {
+    width: 90vw;
+    flex-direction: column;
+    gap: 0;
+
+    /* Move the entire menu toward the center */
+    transform: translateY(-20px);
+  }
+
+  .menu-left {
+    width: 100%;
+    align-items: center;
+  }
+
+  .game-title {
+    font-size: 68px;
+    letter-spacing: -5px;
+  }
+
+  .game-subtitle {
+    margin-top: 16px;
+    font-size: 9px;
+    letter-spacing: 3px;
+  }
+
+  .menu-buttons {
+    width: min(
+      340px,
+      82vw
+    );
+    margin-top: 38px;
+    gap: 13px;
+  }
+
+  .menu-button {
+    height: 58px;
+    font-size: 12px;
+  }
+
+  .menu-character {
+    width: 100%;
+    min-height: 220px;
+  }
+
+  .menu-tadpole {
+    width: 280px;
+    height: 150px;
+  }
+
+  .customize-button {
+    width: 150px;
+    height: 36px;
+  }
+}
+
+/* =================================
+   TAGPOLE LOBBY
+   ================================= */
+
+.lobby-content {
+  align-items: center;
+}
+
+.lobby-info {
+  margin-top: 55px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.lobby-label {
+  color: rgba(185,225,230,0.55);
+  font-size: 11px;
+  font-weight: bold;
+  letter-spacing: 4px;
+  margin-bottom: 8px;
+}
+
+.lobby-code {
+  color: #d9f7f8;
+  font-family: "Trebuchet MS", Arial, Helvetica, sans-serif;
+  font-size: 64px;
+  font-weight: 900;
+  letter-spacing: 12px;
+  line-height: 1;
+  text-shadow:
+    0 3px 0 #174b56,
+    0 8px 25px rgba(0,0,0,0.65),
+    0 0 30px rgba(100,210,220,0.14);
+}
+
+.lobby-players {
+  margin-top: 28px;
+  color: rgba(210,242,244,0.78);
+  font-size: 13px;
+  font-weight: bold;
+  letter-spacing: 3px;
+}
+
+.lobby-waiting {
+  margin-top: 12px;
+  color: rgba(170,215,220,0.42);
+  font-size: 10px;
+  font-weight: bold;
+  letter-spacing: 3px;
+}
+
+@media (
+  max-width: 700px
+) {
+  .lobby-content {
+    width: 90vw;
+  }
+
+  .lobby-info {
+    margin-top: 45px;
+  }
+
+  .lobby-code {
+    font-size: 52px;
+    letter-spacing: 9px;
+  }
+}
+
+@media (
+  max-width: 700px
+) and (
+  orientation: landscape
+) {
+  .lobby-code {
+    font-size: 42px;
+    letter-spacing: 7px;
+  }
+
+  .lobby-info {
+    margin-top: 30px;
+  }
+}
