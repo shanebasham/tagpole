@@ -18,13 +18,16 @@ export class MultiplayerClient {
       'disconnected';
 
   private gameState:
-    GameState | null = null;
+    GameState | null =
+      null;
 
   private playerId:
-    string | null = null;
+    string | null =
+    null;
 
   private roomCode:
-    string | null = null;
+    string | null =
+    null;
 
   private onStateUpdate:
     ((state: GameState) => void) | null =
@@ -40,9 +43,14 @@ export class MultiplayerClient {
 
     if (
       this.socket &&
-      this.socket.readyState ===
-        WebSocket.OPEN
+      (
+        this.socket.readyState ===
+          WebSocket.OPEN ||
+        this.socket.readyState ===
+          WebSocket.CONNECTING
+      )
     ) {
+
       return;
     }
 
@@ -58,6 +66,10 @@ export class MultiplayerClient {
     this.socket.addEventListener(
       'open',
       () => {
+
+        console.log(
+          'Multiplayer connected.'
+        );
 
         this.setStatus(
           'connected'
@@ -79,6 +91,10 @@ export class MultiplayerClient {
       'close',
       () => {
 
+        console.log(
+          'Multiplayer disconnected.'
+        );
+
         this.socket =
           null;
 
@@ -90,7 +106,12 @@ export class MultiplayerClient {
 
     this.socket.addEventListener(
       'error',
-      () => {
+      (error) => {
+
+        console.error(
+          'Multiplayer WebSocket error:',
+          error
+        );
 
         this.setStatus(
           'disconnected'
@@ -159,10 +180,15 @@ export class MultiplayerClient {
       player
     });
   }
-  
+
   sendTrapPlayer(
     targetId: string
   ) {
+
+    console.log(
+      'Sending trap-player:',
+      targetId
+    );
 
     this.send({
       type:
@@ -272,6 +298,11 @@ export class MultiplayerClient {
         this.playerId =
           message.playerId;
 
+        console.log(
+          'Assigned player ID:',
+          this.playerId
+        );
+
         break;
 
       case 'room-created':
@@ -279,12 +310,22 @@ export class MultiplayerClient {
         this.roomCode =
           message.roomCode;
 
+        console.log(
+          'Created room:',
+          this.roomCode
+        );
+
         break;
 
       case 'room-joined':
 
         this.roomCode =
           message.roomCode;
+
+        console.log(
+          'Joined room:',
+          this.roomCode
+        );
 
         break;
 
@@ -334,7 +375,7 @@ export class MultiplayerClient {
     ) {
 
       console.warn(
-        'Multiplayer socket is not connected.'
+        'Cannot send multiplayer message; socket is not connected.'
       );
 
       return;

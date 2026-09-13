@@ -17,7 +17,7 @@ import {
 
 import {
   createDeathScreen
-} from './ui/deathScreen';
+} from './ui/gameOverScreen';
 
 import {
   createGameHud
@@ -236,6 +236,9 @@ let playerTrapped =
 let playerDead =
   false;
 
+let aiRoundOver =
+  false;
+
 // ==============================
 // LOCAL TRAP BUBBLE
 // ==============================
@@ -429,12 +432,39 @@ const mainMenu =
       playerTrapped =
         false;
 
+      aiRoundOver =
+        false;
+
       clearLocalTrapBubble();
 
       clearRemotePlayers();
 
+      // Reset all AI for a fresh round.
+      for (
+        const ai of
+        aiTadpoles
+      ) {
+
+        ai.reset(
+          scene
+        );
+      }
+
       player.model.visible =
         false;
+
+      hud.setAlive(
+        true
+      );
+
+      hud.setTrapped(
+        false,
+        null
+      );
+
+      hud.setCrosshairVisible(
+        true
+      );
 
       updateCombatTargets();
     },
@@ -452,6 +482,9 @@ const mainMenu =
         false;
 
       playerTrapped =
+        false;
+
+      aiRoundOver =
         false;
 
       clearLocalTrapBubble();
@@ -474,6 +507,9 @@ const mainMenu =
       playerTrapped =
         false;
 
+      aiRoundOver =
+        false;
+
       clearLocalTrapBubble();
 
       multiplayer.joinRoom(
@@ -494,6 +530,9 @@ const mainMenu =
         false;
 
       playerTrapped =
+        false;
+
+      aiRoundOver =
         false;
 
       clearLocalTrapBubble();
@@ -752,6 +791,9 @@ multiplayer.setStateListener(
       playerTrapped =
         false;
 
+      aiRoundOver =
+        false;
+
       clearLocalTrapBubble();
 
       player.setTrapped(
@@ -791,10 +833,8 @@ multiplayer.setStateListener(
       multiplayerGame =
         true;
 
-      // IMPORTANT:
-      // Do NOT reset playerDead or
-      // playerTrapped here.
-      // The server owns those states.
+      aiRoundOver =
+        false;
 
       deathScreen.hide();
 
@@ -1012,7 +1052,7 @@ const deathScreen =
         false;
     },
 
-    // RETURN TO LOBBY
+    // RETURN TO LOBBY / MENU
     () => {
 
       if (
@@ -1026,6 +1066,9 @@ const deathScreen =
           false;
 
         gameStarted =
+          false;
+
+        aiRoundOver =
           false;
 
         clearLocalTrapBubble();
@@ -1055,6 +1098,9 @@ const deathScreen =
       gameStarted =
         false;
 
+      aiRoundOver =
+        false;
+
       clearLocalTrapBubble();
 
       player.setTrapped(
@@ -1073,11 +1119,66 @@ const deathScreen =
     // PLAY AGAIN
     () => {
 
+      // --------------------------
+      // VS AI
+      // --------------------------
+
       if (
         !multiplayerGame
       ) {
+
+        for (
+          const ai of
+          aiTadpoles
+        ) {
+
+          ai.reset(
+            scene
+          );
+        }
+
+        playerDead =
+          false;
+
+        playerTrapped =
+          false;
+
+        aiRoundOver =
+          false;
+
+        gameStarted =
+          true;
+
+        clearLocalTrapBubble();
+
+        player.setTrapped(
+          false
+        );
+
+        player.model.visible =
+          false;
+
+        hud.setAlive(
+          true
+        );
+
+        hud.setTrapped(
+          false,
+          null
+        );
+
+        hud.setCrosshairVisible(
+          true
+        );
+
+        updateCombatTargets();
+
         return;
       }
+
+      // --------------------------
+      // MULTIPLAYER
+      // --------------------------
 
       multiplayer.playAgain();
     }
@@ -1196,6 +1297,9 @@ function exitToMainMenu() {
     false;
 
   multiplayerGame =
+    false;
+
+  aiRoundOver =
     false;
 
   clearLocalTrapBubble();
@@ -1352,6 +1456,9 @@ if (
   playerTrapped =
     false;
 
+  aiRoundOver =
+    false;
+
   player.model.visible =
     false;
 }
@@ -1439,6 +1546,11 @@ for (
       // PLAYER TRAPPED
       (bubble) => {
 
+        // AI must NOT locally trap
+        // the player in multiplayer.
+        // Multiplayer uses the server
+        // for player-vs-player trapping.
+
         if (
           multiplayerGame ||
           playerTrapped ||
@@ -1471,6 +1583,17 @@ for (
 
       // PLAYER DIED
       () => {
+
+        // IMPORTANT:
+        // AI cannot trigger the local
+        // single-player death screen
+        // while playing multiplayer.
+
+        if (
+          multiplayerGame
+        ) {
+          return;
+        }
 
         if (
           playerDead
@@ -1565,6 +1688,69 @@ function animate() {
   }
 
   // ============================
+  // AI
+  // ============================
+
+  // AI now runs in BOTH:
+  // - VS AI
+  // - Play With Friends
+  //
+  // With the current AITadpole
+  // implementation, each client-side
+  // AI follows that client's local
+  // player.
+
+  if (
+    !aiRoundOver
+  ) {
+
+    for (
+      const ai of
+      aiTadpoles
+    ) {
+
+      ai.update(
+        delta,
+        scene
+      );
+    }
+  }
+
+  // ============================
+  // VS AI VICTORY
+  // ============================
+
+  if (
+    !multiplayerGame &&
+    !playerDead &&
+    !aiRoundOver
+  ) {
+
+    const livingAIs =
+      aiTadpoles.filter(
+        (ai) =>
+          ai.isAlive()
+      ).length;
+
+    if (
+      livingAIs === 0
+    ) {
+
+      aiRoundOver =
+        true;
+
+      hud.setCrosshairVisible(
+        false
+      );
+
+      deathScreen.show(
+        'victory',
+        true
+      );
+    }
+  }
+
+  // ============================
   // REMOTE PLAYERS
   // ============================
 
@@ -1617,26 +1803,6 @@ function animate() {
         30,
         progress
       );
-  }
-
-  // ============================
-  // AI
-  // ============================
-
-  if (
-    !multiplayerGame
-  ) {
-
-    for (
-      const ai of
-      aiTadpoles
-    ) {
-
-      ai.update(
-        delta,
-        scene
-      );
-    }
   }
 
   // ============================

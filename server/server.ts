@@ -1,41 +1,28 @@
 import http from 'http';
-
 import path from 'path';
-
 import fs from 'fs';
+import { WebSocketServer, WebSocket } from 'ws';
+import { randomUUID } from 'crypto';
 
-import {
-  WebSocketServer,
-  WebSocket
-} from 'ws';
+const PORT = Number(process.env.PORT) || 3001;
+const HOST = '0.0.0.0';
 
-import {
-  randomUUID
-} from 'crypto';
+const SURFACE_Y = 30;
+const BUBBLE_RISE_SPEED = 2;
+const BUBBLE_POP_HEIGHT = 2.5;
+const BUBBLE_CENTER_OFFSET = 1.5;
+const BUBBLE_POP_Y =
+  SURFACE_Y +
+  BUBBLE_POP_HEIGHT -
+  BUBBLE_CENTER_OFFSET;
 
-const PORT =
-  Number(process.env.PORT) || 3001;
+const MAX_PLAYERS = 12;
 
-const HOST =
-  '0.0.0.0';
-
-const SURFACE_Y =
-  30;
-
-const BUBBLE_RISE_SPEED =
-  2;
-
-const MAX_PLAYERS =
-  12;
-
-const ATTACK_RANGE =
-  12;
-
-const ATTACK_FACING_THRESHOLD =
-  0.5;
+// ========================================
+// TYPES
+// ========================================
 
 interface Player {
-
   id: string;
 
   x: number;
@@ -53,17 +40,16 @@ interface Player {
   trapped: boolean;
   isDrowned: boolean;
 
-  trappedAt:
-    number | null;
+  trappedAt: number | null;
+  trapEndAt: number | null;
 
-  trapEndAt:
-    number | null;
+  trapStartX: number;
+  trapStartY: number;
+  trapStartZ: number;
 }
 
 interface Room {
-
   code: string;
-
   hostId: string;
 
   phase:
@@ -71,42 +57,32 @@ interface Room {
     | 'playing'
     | 'ended';
 
-  players:
-    Map<WebSocket, Player>;
+  players: Map<WebSocket, Player>;
 }
+
+// ========================================
+// ROOMS
+// ========================================
 
 const rooms =
   new Map<string, Room>();
 
-// ==============================
+// ========================================
 // HTTP SERVER
-// ==============================
+// ========================================
 
 const server =
   http.createServer(
-    (
-      request,
-      response
-    ) => {
+    (request, response) => {
 
       const url =
         new URL(
           request.url || '/',
-          `http://${request.headers.host || 'localhost'}`
+          `http://${
+            request.headers.host ||
+            'localhost'
+          }`
         );
-
-      let filePath =
-        url.pathname === '/'
-          ? path.join(
-              process.cwd(),
-              'dist',
-              'index.html'
-            )
-          : path.join(
-              process.cwd(),
-              'dist',
-              url.pathname
-            );
 
       const distPath =
         path.resolve(
@@ -114,14 +90,26 @@ const server =
           'dist'
         );
 
+      let filePath =
+        url.pathname === '/'
+          ? path.join(
+              distPath,
+              'index.html'
+            )
+          : path.join(
+              distPath,
+              url.pathname
+            );
+
       filePath =
         path.resolve(
           filePath
         );
 
       if (
+        filePath !== distPath &&
         !filePath.startsWith(
-          distPath
+          distPath + path.sep
         )
       ) {
 
@@ -246,9 +234,9 @@ const server =
     }
   );
 
-// ==============================
+// ========================================
 // WEBSOCKET SERVER
-// ==============================
+// ========================================
 
 const wss =
   new WebSocketServer({
@@ -289,22 +277,20 @@ server.on(
   }
 );
 
-// ==============================
+// ========================================
 // ROOM CODE
-// ==============================
+// ========================================
 
-function createRoomCode() {
+function createRoomCode(): string {
 
   const characters =
     'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
-  let code =
-    '';
+  let code = '';
 
   do {
 
-    code =
-      '';
+    code = '';
 
     for (
       let i = 0;
@@ -322,22 +308,20 @@ function createRoomCode() {
     }
 
   } while (
-    rooms.has(
-      code
-    )
+    rooms.has(code)
   );
 
   return code;
 }
 
-// ==============================
+// ========================================
 // SEND
-// ==============================
+// ========================================
 
 function send(
   socket: WebSocket,
   message: unknown
-) {
+): void {
 
   if (
     socket.readyState ===
@@ -352,17 +336,62 @@ function send(
   }
 }
 
-// ==============================
-// BROADCAST
-// ==============================
+// ========================================
+// BROADCAST STATE
+// ========================================
 
 function broadcastRoomState(
   room: Room
-) {
+): void {
 
   const players =
     Array.from(
       room.players.values()
+    ).map(
+      (player) => ({
+
+        id:
+          player.id,
+
+        x:
+          player.x,
+
+        y:
+          player.y,
+
+        z:
+          player.z,
+
+        yaw:
+          player.yaw,
+
+        pitch:
+          player.pitch,
+
+        vx:
+          player.vx,
+
+        vy:
+          player.vy,
+
+        vz:
+          player.vz,
+
+        alive:
+          player.alive,
+
+        trapped:
+          player.trapped,
+
+        isDrowned:
+          player.isDrowned,
+
+        trappedAt:
+          player.trappedAt,
+
+        trapEndAt:
+          player.trapEndAt,
+      })
     );
 
   const state = {
@@ -396,16 +425,15 @@ function broadcastRoomState(
   }
 }
 
-// ==============================
+// ========================================
 // RESET PLAYERS
-// ==============================
+// ========================================
 
 function resetPlayers(
   room: Room
-) {
+): void {
 
-  let index =
-    0;
+  let index = 0;
 
   for (
     const player of
@@ -451,26 +479,36 @@ function resetPlayers(
     player.trapEndAt =
       null;
 
+    player.trapStartX =
+      player.x;
+
+    player.trapStartY =
+      player.y;
+
+    player.trapStartZ =
+      player.z;
+
     index++;
   }
 }
 
-// ==============================
+// ========================================
 // CHECK ROUND END
-// ==============================
+// ========================================
 
 function checkRoundEnd(
   room: Room
-) {
+): void {
 
   if (
     room.phase !==
     'playing'
   ) {
+
     return;
   }
 
-  const alivePlayers =
+  const survivors =
     Array.from(
       room.players.values()
     ).filter(
@@ -479,15 +517,52 @@ function checkRoundEnd(
         !player.isDrowned
     );
 
+  console.log(
+    `[${room.code}] Round check: ${survivors.length} survivors`
+  );
+
+  // ======================================
+  // ONE PLAYER LEFT
+  // ======================================
+
   if (
-    alivePlayers.length <= 1
+    survivors.length === 1
+  ) {
+
+    const winner =
+      survivors[0];
+
+    room.phase =
+      'ended';
+
+    console.log(
+      `[${room.code}] ROUND ENDED`
+    );
+
+    console.log(
+      `[${room.code}] WINNER: ${winner.id}`
+    );
+
+    broadcastRoomState(
+      room
+    );
+
+    return;
+  }
+
+  // ======================================
+  // ZERO PLAYERS LEFT
+  // ======================================
+
+  if (
+    survivors.length === 0
   ) {
 
     room.phase =
       'ended';
 
     console.log(
-      `Game ended in room: ${room.code}`
+      `[${room.code}] ROUND ENDED - NO SURVIVORS`
     );
 
     broadcastRoomState(
@@ -496,21 +571,44 @@ function checkRoundEnd(
   }
 }
 
-// ==============================
+// ========================================
 // DROWN PLAYER
-// ==============================
+// ========================================
 
 function drownPlayer(
   room: Room,
   target: Player
-) {
+): void {
 
   if (
     !target.trapped ||
     target.isDrowned
   ) {
+
     return;
   }
+
+  console.log(
+    `[${room.code}] DROWNING PLAYER: ${target.id}`
+  );
+
+  target.x =
+    target.trapStartX;
+
+  target.y =
+    BUBBLE_POP_Y;
+
+  target.z =
+    target.trapStartZ;
+
+  target.vx =
+    0;
+
+  target.vy =
+    0;
+
+  target.vz =
+    0;
 
   target.trapped =
     false;
@@ -527,9 +625,13 @@ function drownPlayer(
   target.trapEndAt =
     null;
 
-  console.log(
-    `Player drowned in room ${room.code}: ${target.id}`
-  );
+  // ======================================
+  // IMPORTANT
+  // ======================================
+  //
+  // Broadcast the death FIRST.
+  // Then immediately check whether
+  // this death ended the round.
 
   broadcastRoomState(
     room
@@ -540,20 +642,21 @@ function drownPlayer(
   );
 }
 
-// ==============================
+// ========================================
 // TRAP PLAYER
-// ==============================
+// ========================================
 
 function trapPlayer(
   room: Room,
   attacker: Player,
   target: Player
-) {
+): void {
 
   if (
     room.phase !==
     'playing'
   ) {
+
     return;
   }
 
@@ -561,6 +664,7 @@ function trapPlayer(
     attacker.id ===
     target.id
   ) {
+
     return;
   }
 
@@ -569,6 +673,7 @@ function trapPlayer(
     attacker.trapped ||
     attacker.isDrowned
   ) {
+
     return;
   }
 
@@ -577,81 +682,49 @@ function trapPlayer(
     target.trapped ||
     target.isDrowned
   ) {
+
     return;
   }
 
-  const dx =
-    target.x -
-    attacker.x;
+  // ======================================
+  // SAVE HIT POSITION
+  // ======================================
 
-  const dy =
-    target.y -
-    attacker.y;
+  target.trapStartX =
+    target.x;
 
-  const dz =
-    target.z -
-    attacker.z;
+  target.trapStartY =
+    target.y;
 
-  const distance =
-    Math.sqrt(
-      dx * dx +
-      dy * dy +
-      dz * dz
-    );
+  target.trapStartZ =
+    target.z;
 
-  if (
-    distance >
-    ATTACK_RANGE
-  ) {
-    return;
-  }
-
-  const targetYaw =
-    Math.atan2(
-      dx,
-      dz
-    );
-
-  const yawDifference =
-    Math.atan2(
-      Math.sin(
-        targetYaw -
-        attacker.yaw
-      ),
-      Math.cos(
-        targetYaw -
-        attacker.yaw
-      )
-    );
-
-  const facing =
-    Math.cos(
-      yawDifference
-    );
-
-  if (
-    facing <
-    ATTACK_FACING_THRESHOLD
-  ) {
-    return;
-  }
+  // ======================================
+  // CALCULATE BUBBLE TIME
+  // ======================================
 
   const now =
     Date.now();
 
-  const distanceToSurface =
+  const distance =
     Math.max(
       0,
-      SURFACE_Y -
-      target.y
+      BUBBLE_POP_Y -
+      target.trapStartY
     );
 
-  const trapDuration =
-    (
-      distanceToSurface /
-      BUBBLE_RISE_SPEED
-    ) *
-    1000;
+  const duration =
+    Math.max(
+      500,
+      (
+        distance /
+        BUBBLE_RISE_SPEED
+      ) * 1000
+    );
+
+  // ======================================
+  // TRAP
+  // ======================================
 
   target.trapped =
     true;
@@ -660,36 +733,70 @@ function trapPlayer(
     now;
 
   target.trapEndAt =
-    now +
-    trapDuration;
+    now + duration;
+
+  target.x =
+    target.trapStartX;
+
+  target.y =
+    target.trapStartY;
+
+  target.z =
+    target.trapStartZ;
+
+  target.vx =
+    0;
+
+  target.vy =
+    0;
+
+  target.vz =
+    0;
 
   console.log(
-    `Player ${attacker.id} trapped player ${target.id} in room ${room.code}`
+    `[${room.code}] ${attacker.id} TRAPPED ${target.id}`
+  );
+
+  console.log(
+    `[${room.code}] Bubble duration: ${duration}ms`
   );
 
   broadcastRoomState(
     room
   );
 
+  // ======================================
+  // SERVER-AUTHORITATIVE TIMER
+  // ======================================
+
   setTimeout(
     () => {
 
       if (
-        !room.players.has(
-          findSocketForPlayer(
-            room,
-            target.id
-          ) as WebSocket
-        )
+        room.phase !==
+        'playing'
       ) {
+
         return;
       }
 
       if (
-        target.trapped &&
-        target.trapEndAt !== null &&
+        !target.trapped
+      ) {
+
+        return;
+      }
+
+      if (
+        target.trapEndAt === null
+      ) {
+
+        return;
+      }
+
+      if (
         Date.now() >=
-          target.trapEndAt
+        target.trapEndAt
       ) {
 
         drownPlayer(
@@ -699,16 +806,13 @@ function trapPlayer(
       }
 
     },
-    Math.max(
-      0,
-      trapDuration
-    ) + 50
+    duration + 25
   );
 }
 
-// ==============================
-// FIND SOCKET
-// ==============================
+// ========================================
+// FIND PLAYER
+// ========================================
 
 function findSocketForPlayer(
   room: Room,
@@ -718,7 +822,7 @@ function findSocketForPlayer(
   for (
     const [
       socket,
-      player
+      player,
     ] of room.players
   ) {
 
@@ -734,9 +838,107 @@ function findSocketForPlayer(
   return null;
 }
 
-// ==============================
+// ========================================
+// REMOVE PLAYER
+// ========================================
+
+function removePlayer(
+  socket: WebSocket,
+  room: Room
+): void {
+
+  const leavingPlayer =
+    room.players.get(
+      socket
+    );
+
+  if (
+    !leavingPlayer
+  ) {
+
+    return;
+  }
+
+  room.players.delete(
+    socket
+  );
+
+  console.log(
+    `[${room.code}] PLAYER LEFT: ${leavingPlayer.id}`
+  );
+
+  // ======================================
+  // EMPTY ROOM
+  // ======================================
+
+  if (
+    room.players.size ===
+    0
+  ) {
+
+    rooms.delete(
+      room.code
+    );
+
+    console.log(
+      `Room deleted: ${room.code}`
+    );
+
+    return;
+  }
+
+  // ======================================
+  // HOST LEFT
+  // ======================================
+
+  if (
+    room.hostId ===
+    leavingPlayer.id
+  ) {
+
+    const newHost =
+      room.players
+        .values()
+        .next()
+        .value as Player;
+
+    room.hostId =
+      newHost.id;
+
+    room.phase =
+      'lobby';
+
+    resetPlayers(
+      room
+    );
+
+    console.log(
+      `[${room.code}] NEW HOST: ${room.hostId}`
+    );
+  }
+
+  // ======================================
+  // CHECK IF LEAVING PLAYER ENDED ROUND
+  // ======================================
+
+  if (
+    room.phase ===
+    'playing'
+  ) {
+
+    checkRoundEnd(
+      room
+    );
+  }
+
+  broadcastRoomState(
+    room
+  );
+}
+
+// ========================================
 // CONNECTION
-// ==============================
+// ========================================
 
 wss.on(
   'connection',
@@ -793,6 +995,15 @@ wss.on(
 
       trapEndAt:
         null,
+
+      trapStartX:
+        0,
+
+      trapStartY:
+        0,
+
+      trapStartZ:
+        0,
     };
 
     console.log(
@@ -809,9 +1020,9 @@ wss.on(
       }
     );
 
-    // ==============================
+    // ====================================
     // MESSAGE
-    // ==============================
+    // ====================================
 
     socket.on(
       'message',
@@ -843,9 +1054,9 @@ wss.on(
           return;
         }
 
-        // ==============================
+        // ==================================
         // CREATE ROOM
-        // ==============================
+        // ==================================
 
         if (
           message.type ===
@@ -923,9 +1134,9 @@ wss.on(
           return;
         }
 
-        // ==============================
+        // ==================================
         // JOIN ROOM
-        // ==============================
+        // ==================================
 
         if (
           message.type ===
@@ -1028,7 +1239,7 @@ wss.on(
             room;
 
           console.log(
-            `Player joined room: ${code}`
+            `[${code}] PLAYER JOINED: ${playerId}`
           );
 
           send(
@@ -1049,9 +1260,9 @@ wss.on(
           return;
         }
 
-        // ==============================
+        // ==================================
         // START GAME
-        // ==============================
+        // ==================================
 
         if (
           message.type ===
@@ -1106,6 +1317,7 @@ wss.on(
             currentRoom.phase !==
             'lobby'
           ) {
+
             return;
           }
 
@@ -1117,7 +1329,7 @@ wss.on(
             'playing';
 
           console.log(
-            `Game started in room: ${currentRoom.code}`
+            `[${currentRoom.code}] GAME STARTED`
           );
 
           broadcastRoomState(
@@ -1127,9 +1339,9 @@ wss.on(
           return;
         }
 
-        // ==============================
+        // ==================================
         // PLAY AGAIN
-        // ==============================
+        // ==================================
 
         if (
           message.type ===
@@ -1165,6 +1377,7 @@ wss.on(
             currentRoom.phase !==
             'ended'
           ) {
+
             return;
           }
 
@@ -1176,7 +1389,7 @@ wss.on(
             'lobby';
 
           console.log(
-            `Returning room ${currentRoom.code} to lobby`
+            `[${currentRoom.code}] RETURNED TO LOBBY`
           );
 
           broadcastRoomState(
@@ -1186,9 +1399,9 @@ wss.on(
           return;
         }
 
-        // ==============================
+        // ==================================
         // PLAYER STATE
-        // ==============================
+        // ==================================
 
         if (
           message.type ===
@@ -1209,6 +1422,7 @@ wss.on(
             networkPlayer.id !==
               playerId
           ) {
+
             return;
           }
 
@@ -1220,23 +1434,66 @@ wss.on(
           if (
             !storedPlayer
           ) {
+
             return;
           }
 
-          storedPlayer.x =
-            Number(
-              networkPlayer.x
-            ) || 0;
+          // Server controls position
+          // while trapped.
+          if (
+            !storedPlayer.trapped
+          ) {
 
-          storedPlayer.y =
-            Number(
-              networkPlayer.y
-            ) || 0;
+            storedPlayer.x =
+              Number(
+                networkPlayer.x
+              ) || 0;
 
-          storedPlayer.z =
-            Number(
-              networkPlayer.z
-            ) || 0;
+            storedPlayer.y =
+              Number(
+                networkPlayer.y
+              ) || 0;
+
+            storedPlayer.z =
+              Number(
+                networkPlayer.z
+              ) || 0;
+
+            storedPlayer.vx =
+              Number(
+                networkPlayer.vx
+              ) || 0;
+
+            storedPlayer.vy =
+              Number(
+                networkPlayer.vy
+              ) || 0;
+
+            storedPlayer.vz =
+              Number(
+                networkPlayer.vz
+              ) || 0;
+
+          } else {
+
+            storedPlayer.x =
+              storedPlayer.trapStartX;
+
+            storedPlayer.y =
+              storedPlayer.trapStartY;
+
+            storedPlayer.z =
+              storedPlayer.trapStartZ;
+
+            storedPlayer.vx =
+              0;
+
+            storedPlayer.vy =
+              0;
+
+            storedPlayer.vz =
+              0;
+          }
 
           storedPlayer.yaw =
             Number(
@@ -1248,25 +1505,6 @@ wss.on(
               networkPlayer.pitch
             ) || 0;
 
-          storedPlayer.vx =
-            Number(
-              networkPlayer.vx
-            ) || 0;
-
-          storedPlayer.vy =
-            Number(
-              networkPlayer.vy
-            ) || 0;
-
-          storedPlayer.vz =
-            Number(
-              networkPlayer.vz
-            ) || 0;
-
-          // IMPORTANT:
-          // alive/trapped/isDrowned are
-          // server-authoritative.
-
           broadcastRoomState(
             currentRoom
           );
@@ -1274,9 +1512,9 @@ wss.on(
           return;
         }
 
-        // ==============================
+        // ==================================
         // TRAP PLAYER
-        // ==============================
+        // ==================================
 
         if (
           message.type ===
@@ -1315,6 +1553,11 @@ wss.on(
           if (
             !targetSocket
           ) {
+
+            console.log(
+              `[${currentRoom.code}] TARGET NOT FOUND: ${targetId}`
+            );
+
             return;
           }
 
@@ -1338,9 +1581,9 @@ wss.on(
           return;
         }
 
-        // ==============================
+        // ==================================
         // LEAVE ROOM
-        // ==============================
+        // ==================================
 
         if (
           message.type ===
@@ -1353,22 +1596,25 @@ wss.on(
             return;
           }
 
-          removePlayer(
-            socket,
-            currentRoom
-          );
+          const room =
+            currentRoom;
 
           currentRoom =
             null;
+
+          removePlayer(
+            socket,
+            room
+          );
 
           return;
         }
       }
     );
 
-    // ==============================
+    // ====================================
     // DISCONNECT
-    // ==============================
+    // ====================================
 
     socket.on(
       'close',
@@ -1382,9 +1628,15 @@ wss.on(
           currentRoom
         ) {
 
+          const room =
+            currentRoom;
+
+          currentRoom =
+            null;
+
           removePlayer(
             socket,
-            currentRoom
+            room
           );
         }
       }
@@ -1392,83 +1644,9 @@ wss.on(
   }
 );
 
-// ==============================
-// REMOVE PLAYER
-// ==============================
-
-function removePlayer(
-  socket: WebSocket,
-  room: Room
-) {
-
-  const leavingPlayer =
-    room.players.get(
-      socket
-    );
-
-  room.players.delete(
-    socket
-  );
-
-  console.log(
-    `Player left room: ${room.code}`
-  );
-
-  if (
-    room.players.size ===
-    0
-  ) {
-
-    rooms.delete(
-      room.code
-    );
-
-    console.log(
-      `Room deleted: ${room.code}`
-    );
-
-    return;
-  }
-
-  // ==============================
-  // HOST LEFT
-  // ==============================
-
-  if (
-    leavingPlayer &&
-    room.hostId ===
-      leavingPlayer.id
-  ) {
-
-    const newHost =
-      room.players
-        .values()
-        .next()
-        .value as Player;
-
-    room.hostId =
-      newHost.id;
-
-    room.phase =
-      'lobby';
-
-    resetPlayers(
-      room
-    );
-
-    console.log(
-      `New host in room ${room.code}: ${room.hostId}`
-    );
-  }
-
-  broadcastRoomState(
-    room
-  );
-}
-
-// ==============================
-// LISTEN
-// ==============================
+// ========================================
+// START
+// ========================================
 
 console.log(
   `TAGPOLE multiplayer server starting on ${HOST}:${PORT}`

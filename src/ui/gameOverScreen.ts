@@ -2,89 +2,50 @@ import './style.css';
 
 export type DeathScreenMode =
   | 'death'
-  | 'round-over';
+  | 'round-over'
+  | 'victory';
 
 export function createDeathScreen(
   onSpectate: () => void,
   onReturnToLobby: () => void,
   onPlayAgain: () => void
 ) {
+  const deathScreen = document.createElement('div');
 
-  const deathScreen =
-    document.createElement('div');
-
-  deathScreen.id =
-    'death-screen';
+  deathScreen.id = 'death-screen';
 
   deathScreen.innerHTML = `
-    <div id="death-title">
-      YOU DIED
-    </div>
-
-    <div id="death-subtitle">
-      THE SURFACE CLAIMED YOU
-    </div>
+    <div id="death-title">YOU DIED</div>
+    <div id="death-subtitle">THE SURFACE CLAIMED YOU</div>
 
     <div id="death-buttons">
-
-      <button
-        id="spectate-button"
-      >
-        SPECTATE
-      </button>
-
-      <button
-        id="play-again-button"
-      >
-        PLAY AGAIN
-      </button>
-
-      <button
-        id="main-menu-button"
-      >
-        RETURN TO LOBBY
-      </button>
-
+      <button id="spectate-button">SPECTATE</button>
+      <button id="play-again-button">PLAY AGAIN</button>
+      <button id="main-menu-button">RETURN TO LOBBY</button>
     </div>
   `;
 
-  document.body.appendChild(
-    deathScreen
-  );
+  document.body.appendChild(deathScreen);
 
   const deathTitle =
-    document.getElementById(
-      'death-title'
-    );
+    document.getElementById('death-title');
 
   const deathSubtitle =
-    document.getElementById(
-      'death-subtitle'
-    );
+    document.getElementById('death-subtitle');
 
   const spectateButton =
-    document.getElementById(
-      'spectate-button'
-    );
+    document.getElementById('spectate-button');
 
   const playAgainButton =
-    document.getElementById(
-      'play-again-button'
-    );
+    document.getElementById('play-again-button');
 
   const mainMenuButton =
-    document.getElementById(
-      'main-menu-button'
-    );
+    document.getElementById('main-menu-button');
 
   spectateButton?.addEventListener(
     'click',
     () => {
-
-      deathScreen.classList.remove(
-        'visible'
-      );
-
+      deathScreen.classList.remove('visible');
       onSpectate();
     }
   );
@@ -92,11 +53,7 @@ export function createDeathScreen(
   playAgainButton?.addEventListener(
     'click',
     () => {
-
-      deathScreen.classList.remove(
-        'visible'
-      );
-
+      deathScreen.classList.remove('visible');
       onPlayAgain();
     }
   );
@@ -104,26 +61,17 @@ export function createDeathScreen(
   mainMenuButton?.addEventListener(
     'click',
     () => {
-
-      deathScreen.classList.remove(
-        'visible'
-      );
-
+      deathScreen.classList.remove('visible');
       onReturnToLobby();
     }
   );
 
   return {
-
     show(
       mode: DeathScreenMode = 'death',
       isHost = false
     ) {
-
-      if (
-        mode === 'death'
-      ) {
-
+      if (mode === 'death') {
         if (deathTitle) {
           deathTitle.textContent =
             'YOU DIED';
@@ -148,9 +96,39 @@ export function createDeathScreen(
           mainMenuButton.textContent =
             'RETURN TO LOBBY';
         }
+      }
 
-      } else {
+      else if (mode === 'victory') {
+        if (deathTitle) {
+          deathTitle.textContent =
+            'YOU WIN';
+        }
 
+        if (deathSubtitle) {
+          deathSubtitle.textContent =
+            'ALL CREATURES HAVE BEEN ELIMINATED';
+        }
+
+        if (spectateButton) {
+          spectateButton.style.display =
+            'none';
+        }
+
+        if (playAgainButton) {
+          playAgainButton.style.display =
+            'block';
+
+          playAgainButton.textContent =
+            'PLAY AGAIN';
+        }
+
+        if (mainMenuButton) {
+          mainMenuButton.textContent =
+            'RETURN TO MENU';
+        }
+      }
+
+      else {
         if (deathTitle) {
           deathTitle.textContent =
             'ROUND OVER';
@@ -167,7 +145,6 @@ export function createDeathScreen(
         }
 
         if (playAgainButton) {
-
           playAgainButton.style.display =
             isHost
               ? 'block'
@@ -185,37 +162,26 @@ export function createDeathScreen(
         }
       }
 
-      deathScreen.classList.add(
-        'visible'
-      );
+      deathScreen.classList.add('visible');
 
       if (
         typeof document.exitPointerLock ===
         'function'
       ) {
-
         document.exitPointerLock();
       }
     },
 
     hide() {
-
       deathScreen.classList.remove(
         'visible'
       );
     },
 
     setWaitingForHost() {
-
-      if (
-        playAgainButton
-      ) {
-
+      if (playAgainButton) {
         playAgainButton.style.display =
           'block';
-
-        // playAgainButton.disabled =
-        //   true;
 
         playAgainButton.textContent =
           'WAITING FOR HOST...';
