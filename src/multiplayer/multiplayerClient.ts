@@ -36,15 +36,19 @@ export class MultiplayerClient {
     ) => void) | null =
     null;
 
+  private stateListeners:
+    Array<
+      (state: GameState) => void
+    > = [];
+
   private onStatusChange:
     ((
-      status: MultiplayerStatus
+      status:
+        MultiplayerStatus
     ) => void) | null =
     null;
 
-  connect(
-    serverUrl: string
-  ) {
+  connect(serverUrl: string): void {
 
     if (
       this.socket &&
@@ -55,7 +59,6 @@ export class MultiplayerClient {
           WebSocket.CONNECTING
       )
     ) {
-
       return;
     }
 
@@ -100,8 +103,7 @@ export class MultiplayerClient {
           'Multiplayer disconnected.'
         );
 
-        this.socket =
-          null;
+        this.socket = null;
 
         this.setStatus(
           'disconnected'
@@ -125,16 +127,13 @@ export class MultiplayerClient {
     );
   }
 
-  disconnect() {
+  disconnect(): void {
 
     if (
       this.socket
     ) {
-
       this.socket.close();
-
-      this.socket =
-        null;
+      this.socket = null;
     }
 
     this.playerId =
@@ -151,7 +150,7 @@ export class MultiplayerClient {
     );
   }
 
-  createRoom() {
+  createRoom(): void {
 
     this.send({
       type:
@@ -161,10 +160,9 @@ export class MultiplayerClient {
 
   joinRoom(
     roomCode: string
-  ) {
+  ): void {
 
     this.send({
-
       type:
         'join-room',
 
@@ -177,10 +175,9 @@ export class MultiplayerClient {
 
   sendPlayerState(
     player: NetworkPlayer
-  ) {
+  ): void {
 
     this.send({
-
       type:
         'player-state',
 
@@ -190,7 +187,7 @@ export class MultiplayerClient {
 
   sendTrapPlayer(
     targetId: string
-  ) {
+  ): void {
 
     console.log(
       'Sending trap-player:',
@@ -198,7 +195,6 @@ export class MultiplayerClient {
     );
 
     this.send({
-
       type:
         'trap-player',
 
@@ -206,28 +202,25 @@ export class MultiplayerClient {
     });
   }
 
-  startGame() {
+  startGame(): void {
 
     this.send({
-
       type:
         'start-game'
     });
   }
 
-  playAgain() {
+  playAgain(): void {
 
     this.send({
-
       type:
         'play-again'
     });
   }
 
-  leaveRoom() {
+  leaveRoom(): void {
 
     this.send({
-
       type:
         'leave-room'
     });
@@ -239,10 +232,20 @@ export class MultiplayerClient {
   setStateListener(
     callback:
       (state: GameState) => void
-  ) {
+  ): void {
 
     this.onStateUpdate =
       callback;
+  }
+
+  addStateListener(
+    callback:
+      (state: GameState) => void
+  ): void {
+
+    this.stateListeners.push(
+      callback
+    );
   }
 
   setStatusListener(
@@ -251,38 +254,41 @@ export class MultiplayerClient {
         status:
           MultiplayerStatus
       ) => void
-  ) {
+  ): void {
 
     this.onStatusChange =
       callback;
   }
 
-  getStatus() {
+  getStatus():
+    MultiplayerStatus {
 
     return this.status;
   }
 
-  getGameState() {
+  getGameState():
+    GameState | null {
 
     return this.gameState;
   }
 
-  getPlayerId() {
+  getPlayerId():
+    string | null {
 
     return this.playerId;
   }
 
-  getRoomCode() {
+  getRoomCode():
+    string | null {
 
     return this.roomCode;
   }
 
   private handleMessage(
     rawMessage: string
-  ) {
+  ): void {
 
-    let message:
-      any;
+    let message: any;
 
     try {
 
@@ -347,13 +353,39 @@ export class MultiplayerClient {
           message.state;
 
         if (
-          this.onStateUpdate &&
           this.gameState
         ) {
 
-          this.onStateUpdate(
-            this.gameState
-          );
+          /*
+           * Primary state listener.
+           *
+           * Used by main.ts for
+           * world-seed synchronization.
+           */
+          if (
+            this.onStateUpdate
+          ) {
+
+            this.onStateUpdate(
+              this.gameState
+            );
+          }
+
+          /*
+           * Additional state listeners.
+           *
+           * MultiplayerGame uses this
+           * for player/lobby/game updates.
+           */
+          for (
+            const listener
+            of this.stateListeners
+          ) {
+
+            listener(
+              this.gameState
+            );
+          }
         }
 
         break;
@@ -373,12 +405,14 @@ export class MultiplayerClient {
           'Unknown multiplayer message:',
           message
         );
+
+        break;
     }
   }
 
   private send(
     message: unknown
-  ) {
+  ): void {
 
     if (
       !this.socket ||
@@ -403,7 +437,7 @@ export class MultiplayerClient {
   private setStatus(
     status:
       MultiplayerStatus
-  ) {
+  ): void {
 
     this.status =
       status;

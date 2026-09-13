@@ -160,6 +160,7 @@ const multiplayer =
 
 multiplayer.setStatusListener(
   (status) => {
+
     console.log(
       'Multiplayer status:',
       status
@@ -167,15 +168,27 @@ multiplayer.setStatusListener(
   }
 );
 
+// ========================================
+// WORLD SEED SYNCHRONIZATION
+// ========================================
+
 let loadedWorldSeed =
   worldManager.getWorldSeed();
 
 multiplayer.setStateListener(
   (state) => {
+
     if (
       state.worldSeed !== 0 &&
-      state.worldSeed !== loadedWorldSeed
+      state.worldSeed !==
+        loadedWorldSeed
     ) {
+
+      console.log(
+        'Loading multiplayer world seed:',
+        state.worldSeed
+      );
+
       loadedWorldSeed =
         state.worldSeed;
 
@@ -183,24 +196,26 @@ multiplayer.setStateListener(
         state.worldSeed
       );
     }
-
-    // KEEP THE REST OF YOUR
-    // EXISTING STATE LISTENER HERE
   }
 );
 
-const multiplayerProtocol =
-  window.location.protocol === 'https:'
-    ? 'wss:'
-    : 'ws:';
+// ========================================
+// CONNECT
+// ========================================
+
+const multiplayerServerUrl =
+  window.location.protocol ===
+    'https:'
+    ? `wss://${window.location.host}`
+    : `ws://${window.location.host}`;
 
 multiplayer.connect(
-  `${multiplayerProtocol}//${window.location.host}`
+  multiplayerServerUrl
 );
 
-// ==============================
+// ========================================
 // REMOTE PLAYERS
-// ==============================
+// ========================================
 
 const remotePlayerManager =
   new RemotePlayerManager(
@@ -208,9 +223,9 @@ const remotePlayerManager =
     multiplayer
   );
 
-// ==============================
+// ========================================
 // MULTIPLAYER GAME
-// ==============================
+// ========================================
 
 const multiplayerGame =
   new MultiplayerGame(
