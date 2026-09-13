@@ -61,6 +61,18 @@ export function createMultiplayerController(
 
   let startRequested = false;
 
+  let lastLobbyRoomCode: string | null = null;
+  let lastLobbyPlayerCount = -1;
+  let lastLobbyMaxPlayers = -1;
+  let lastLobbyIsHost = false;
+
+  const resetLobbyDisplay = (): void => {
+    lastLobbyRoomCode = null;
+    lastLobbyPlayerCount = -1;
+    lastLobbyMaxPlayers = -1;
+    lastLobbyIsHost = false;
+  };
+
   const start = (): void => {
     multiplayerGame.start();
   };
@@ -68,10 +80,12 @@ export function createMultiplayerController(
   const stop = (): void => {
     multiplayerGame.stop();
     startRequested = false;
+    resetLobbyDisplay();
   };
 
   const createRoom = (): void => {
     startRequested = false;
+    resetLobbyDisplay();
 
     playerController.clearTrap();
     aiManager.clear();
@@ -85,25 +99,34 @@ export function createMultiplayerController(
     roomCode: string
   ): void => {
     startRequested = false;
+    resetLobbyDisplay();
 
     playerController.clearTrap();
     aiManager.clear();
     remotePlayerManager.clear();
 
     multiplayerGame.start();
-    multiplayer.joinRoom(roomCode);
+    multiplayer.joinRoom(
+      roomCode
+    );
   };
 
   const startGame = (): void => {
     if (
-        multiplayer.getStatus() !==
-        'connected'
+      multiplayer.getStatus() !==
+      'connected'
     ) {
-        console.warn(
+      console.warn(
         'Cannot start multiplayer game; multiplayer is not connected.'
-        );
+      );
 
-        return;
+      return;
+    }
+
+    if (
+      startRequested
+    ) {
+      return;
     }
 
     startRequested = true;
@@ -111,21 +134,24 @@ export function createMultiplayerController(
     multiplayerGame.start();
 
     gameState.multiplayer =
-        true;
+      true;
+
+    gameState.started =
+      true;
 
     gameState.playerDead =
-        false;
+      false;
 
     gameState.playerTrapped =
-        false;
+      false;
 
     gameState.aiRoundOver =
-        false;
+      false;
 
     pointerLock.lock();
 
     multiplayer.startGame();
-    };
+  };
 
   const updatePlayers = (
     players: MultiplayerState['players'],
@@ -212,10 +238,19 @@ export function createMultiplayerController(
     roomCode: string,
     playerId: string | null
   ): void => {
+    if (
+      startRequested
+    ) {
+      return;
+    }
+
     pointerLock.unlock();
 
     gameState.multiplayer =
       true;
+
+    gameState.started =
+      false;
 
     gameState.playerDead =
       false;
@@ -226,37 +261,54 @@ export function createMultiplayerController(
     gameState.aiRoundOver =
       false;
 
+    const isHost =
+      playerId === state.hostId;
+
+    const lobbyChanged =
+      roomCode !== lastLobbyRoomCode ||
+      state.players.length !== lastLobbyPlayerCount ||
+      state.maxPlayers !== lastLobbyMaxPlayers ||
+      isHost !== lastLobbyIsHost;
+
     if (
-      !startRequested
+      !lobbyChanged
     ) {
-      gameState.started =
-        false;
-
-      playerController.clearTrap();
-      playerController.reset();
-
-      aiManager.clear();
-
-      remotePlayerManager.clear();
-
-      deathScreen.hide();
-
-      const isHost =
-        playerId === state.hostId;
-
-      mainMenu.showLobby(
-        roomCode,
-        state.players.length,
-        state.maxPlayers,
-        isHost
-      );
+      return;
     }
+
+    lastLobbyRoomCode =
+      roomCode;
+
+    lastLobbyPlayerCount =
+      state.players.length;
+
+    lastLobbyMaxPlayers =
+      state.maxPlayers;
+
+    lastLobbyIsHost =
+      isHost;
+
+    playerController.clearTrap();
+    playerController.reset();
+
+    aiManager.clear();
+    remotePlayerManager.clear();
+
+    deathScreen.hide();
+
+    mainMenu.showLobby(
+      roomCode,
+      state.players.length,
+      state.maxPlayers,
+      isHost
+    );
   };
 
   const handlePlaying = (
     state: MultiplayerState
   ): void => {
     startRequested = false;
+    resetLobbyDisplay();
 
     gameState.started =
       true;
@@ -294,6 +346,7 @@ export function createMultiplayerController(
     isHost: boolean
   ): void => {
     startRequested = false;
+    resetLobbyDisplay();
 
     gameState.started =
       true;
