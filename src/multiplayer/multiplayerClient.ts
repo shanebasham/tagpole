@@ -159,6 +159,18 @@ export class MultiplayerClient {
       player
     });
   }
+  
+  sendTrapPlayer(
+    targetId: string
+  ) {
+
+    this.send({
+      type:
+        'trap-player',
+
+      targetId
+    });
+  }
 
   startGame() {
 

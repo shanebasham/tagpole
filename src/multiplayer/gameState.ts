@@ -24,6 +24,9 @@ export interface NetworkPlayer {
   alive: boolean;
   trapped: boolean;
   isDrowned: boolean;
+
+  trappedAt: number | null;
+  trapEndAt: number | null;
 }
 
 export interface GameState {

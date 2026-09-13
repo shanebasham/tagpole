@@ -1,10 +1,14 @@
 import http from 'http';
+
 import path from 'path';
+
 import fs from 'fs';
+
 import {
   WebSocketServer,
   WebSocket
 } from 'ws';
+
 import {
   randomUUID
 } from 'crypto';
@@ -15,7 +19,23 @@ const PORT =
 const HOST =
   '0.0.0.0';
 
+const SURFACE_Y =
+  30;
+
+const BUBBLE_RISE_SPEED =
+  2;
+
+const MAX_PLAYERS =
+  12;
+
+const ATTACK_RANGE =
+  12;
+
+const ATTACK_FACING_THRESHOLD =
+  0.5;
+
 interface Player {
+
   id: string;
 
   x: number;
@@ -32,9 +52,16 @@ interface Player {
   alive: boolean;
   trapped: boolean;
   isDrowned: boolean;
+
+  trappedAt:
+    number | null;
+
+  trapEndAt:
+    number | null;
 }
 
 interface Room {
+
   code: string;
 
   hostId: string;
@@ -44,7 +71,8 @@ interface Room {
     | 'playing'
     | 'ended';
 
-  players: Map<WebSocket, Player>;
+  players:
+    Map<WebSocket, Player>;
 }
 
 const rooms =
@@ -96,6 +124,7 @@ const server =
           distPath
         )
       ) {
+
         response.writeHead(
           403
         );
@@ -115,6 +144,7 @@ const server =
           filePath
         ).isDirectory()
       ) {
+
         filePath =
           path.join(
             distPath,
@@ -127,6 +157,7 @@ const server =
           filePath
         )
       ) {
+
         response.writeHead(
           404
         );
@@ -236,6 +267,7 @@ server.on(
       request.headers.upgrade?.toLowerCase() !==
       'websocket'
     ) {
+
       socket.destroy();
 
       return;
@@ -255,14 +287,6 @@ server.on(
       }
     );
   }
-);
-
-// ==============================
-// SERVER START
-// ==============================
-
-console.log(
-  `TAGPOLE multiplayer server starting on ${HOST}:${PORT}`
 );
 
 // ==============================
@@ -329,7 +353,7 @@ function send(
 }
 
 // ==============================
-// BROADCAST ROOM STATE
+// BROADCAST
 // ==============================
 
 function broadcastRoomState(
@@ -349,7 +373,7 @@ function broadcastRoomState(
     players,
 
     maxPlayers:
-      12,
+      MAX_PLAYERS,
 
     hostId:
       room.hostId,
@@ -421,6 +445,12 @@ function resetPlayers(
     player.isDrowned =
       false;
 
+    player.trappedAt =
+      null;
+
+    player.trapEndAt =
+      null;
+
     index++;
   }
 }
@@ -464,6 +494,244 @@ function checkRoundEnd(
       room
     );
   }
+}
+
+// ==============================
+// DROWN PLAYER
+// ==============================
+
+function drownPlayer(
+  room: Room,
+  target: Player
+) {
+
+  if (
+    !target.trapped ||
+    target.isDrowned
+  ) {
+    return;
+  }
+
+  target.trapped =
+    false;
+
+  target.alive =
+    false;
+
+  target.isDrowned =
+    true;
+
+  target.trappedAt =
+    null;
+
+  target.trapEndAt =
+    null;
+
+  console.log(
+    `Player drowned in room ${room.code}: ${target.id}`
+  );
+
+  broadcastRoomState(
+    room
+  );
+
+  checkRoundEnd(
+    room
+  );
+}
+
+// ==============================
+// TRAP PLAYER
+// ==============================
+
+function trapPlayer(
+  room: Room,
+  attacker: Player,
+  target: Player
+) {
+
+  if (
+    room.phase !==
+    'playing'
+  ) {
+    return;
+  }
+
+  if (
+    attacker.id ===
+    target.id
+  ) {
+    return;
+  }
+
+  if (
+    !attacker.alive ||
+    attacker.trapped ||
+    attacker.isDrowned
+  ) {
+    return;
+  }
+
+  if (
+    !target.alive ||
+    target.trapped ||
+    target.isDrowned
+  ) {
+    return;
+  }
+
+  const dx =
+    target.x -
+    attacker.x;
+
+  const dy =
+    target.y -
+    attacker.y;
+
+  const dz =
+    target.z -
+    attacker.z;
+
+  const distance =
+    Math.sqrt(
+      dx * dx +
+      dy * dy +
+      dz * dz
+    );
+
+  if (
+    distance >
+    ATTACK_RANGE
+  ) {
+    return;
+  }
+
+  const targetYaw =
+    Math.atan2(
+      dx,
+      dz
+    );
+
+  const yawDifference =
+    Math.atan2(
+      Math.sin(
+        targetYaw -
+        attacker.yaw
+      ),
+      Math.cos(
+        targetYaw -
+        attacker.yaw
+      )
+    );
+
+  const facing =
+    Math.cos(
+      yawDifference
+    );
+
+  if (
+    facing <
+    ATTACK_FACING_THRESHOLD
+  ) {
+    return;
+  }
+
+  const now =
+    Date.now();
+
+  const distanceToSurface =
+    Math.max(
+      0,
+      SURFACE_Y -
+      target.y
+    );
+
+  const trapDuration =
+    (
+      distanceToSurface /
+      BUBBLE_RISE_SPEED
+    ) *
+    1000;
+
+  target.trapped =
+    true;
+
+  target.trappedAt =
+    now;
+
+  target.trapEndAt =
+    now +
+    trapDuration;
+
+  console.log(
+    `Player ${attacker.id} trapped player ${target.id} in room ${room.code}`
+  );
+
+  broadcastRoomState(
+    room
+  );
+
+  setTimeout(
+    () => {
+
+      if (
+        !room.players.has(
+          findSocketForPlayer(
+            room,
+            target.id
+          ) as WebSocket
+        )
+      ) {
+        return;
+      }
+
+      if (
+        target.trapped &&
+        target.trapEndAt !== null &&
+        Date.now() >=
+          target.trapEndAt
+      ) {
+
+        drownPlayer(
+          room,
+          target
+        );
+      }
+
+    },
+    Math.max(
+      0,
+      trapDuration
+    ) + 50
+  );
+}
+
+// ==============================
+// FIND SOCKET
+// ==============================
+
+function findSocketForPlayer(
+  room: Room,
+  playerId: string
+): WebSocket | null {
+
+  for (
+    const [
+      socket,
+      player
+    ] of room.players
+  ) {
+
+    if (
+      player.id ===
+      playerId
+    ) {
+
+      return socket;
+    }
+  }
+
+  return null;
 }
 
 // ==============================
@@ -519,6 +787,12 @@ wss.on(
 
       isDrowned:
         false,
+
+      trappedAt:
+        null,
+
+      trapEndAt:
+        null,
     };
 
     console.log(
@@ -709,7 +983,7 @@ wss.on(
 
           if (
             room.players.size >=
-            12
+            MAX_PLAYERS
           ) {
 
             send(
@@ -989,27 +1263,76 @@ wss.on(
               networkPlayer.vz
             ) || 0;
 
-          storedPlayer.alive =
-            Boolean(
-              networkPlayer.alive
-            );
-
-          storedPlayer.trapped =
-            Boolean(
-              networkPlayer.trapped
-            );
-
-          storedPlayer.isDrowned =
-            Boolean(
-              networkPlayer.isDrowned
-            );
+          // IMPORTANT:
+          // alive/trapped/isDrowned are
+          // server-authoritative.
 
           broadcastRoomState(
             currentRoom
           );
 
-          checkRoundEnd(
-            currentRoom
+          return;
+        }
+
+        // ==============================
+        // TRAP PLAYER
+        // ==============================
+
+        if (
+          message.type ===
+          'trap-player'
+        ) {
+
+          if (
+            !currentRoom
+          ) {
+            return;
+          }
+
+          const attacker =
+            currentRoom.players.get(
+              socket
+            );
+
+          if (
+            !attacker
+          ) {
+            return;
+          }
+
+          const targetId =
+            String(
+              message.targetId ||
+              ''
+            );
+
+          const targetSocket =
+            findSocketForPlayer(
+              currentRoom,
+              targetId
+            );
+
+          if (
+            !targetSocket
+          ) {
+            return;
+          }
+
+          const target =
+            currentRoom.players.get(
+              targetSocket
+            );
+
+          if (
+            !target
+          ) {
+            return;
+          }
+
+          trapPlayer(
+            currentRoom,
+            attacker,
+            target
           );
 
           return;
@@ -1129,6 +1452,10 @@ function removePlayer(
     room.phase =
       'lobby';
 
+    resetPlayers(
+      room
+    );
+
     console.log(
       `New host in room ${room.code}: ${room.hostId}`
     );
@@ -1142,6 +1469,10 @@ function removePlayer(
 // ==============================
 // LISTEN
 // ==============================
+
+console.log(
+  `TAGPOLE multiplayer server starting on ${HOST}:${PORT}`
+);
 
 server.listen(
   PORT,
