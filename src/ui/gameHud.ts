@@ -218,7 +218,10 @@ export function createGameHud() {
         trapped
       );
 
-      if (!trapped || !bubble) {
+      if (
+        !trapped ||
+        !bubble
+      ) {
         return;
       }
     },

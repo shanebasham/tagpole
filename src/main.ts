@@ -28,6 +28,10 @@ import {
 } from './player/controls';
 
 import {
+  createPointerLock
+} from './ui/pointerLock';
+
+import {
   AITadpole
 } from './player/ai/aiTadpole';
 
@@ -159,6 +163,15 @@ renderer.domElement.style.height =
 
 renderer.domElement.style.zIndex =
   '1';
+
+// ==============================
+// POINTER LOCK
+// ==============================
+
+const pointerLock =
+  createPointerLock(
+    renderer.domElement
+  );
 
 // ==============================
 // CONTROLS
@@ -409,6 +422,36 @@ function updateCombatTargets() {
 }
 
 // ==============================
+// HUD
+// ==============================
+
+const hud =
+  createGameHud();
+
+hud.setRole(
+  player.isIt
+);
+
+hud.setAlive(
+  true
+);
+
+hud.setPlayersAlive(
+  12
+);
+
+hud.setCrosshairVisible(
+  true
+);
+
+// ==============================
+// GAME OVER SCREEN
+// ==============================
+
+let deathScreen:
+  ReturnType<typeof createDeathScreen>;
+
+// ==============================
 // MAIN MENU
 // ==============================
 
@@ -448,6 +491,9 @@ const mainMenu =
         ai.reset(
           scene
         );
+
+        ai.model.visible =
+          true;
       }
 
       player.model.visible =
@@ -467,6 +513,10 @@ const mainMenu =
       );
 
       updateCombatTargets();
+
+      // Automatically lock mouse
+      // when the game starts.
+      pointerLock.lock();
     },
 
     // CREATE ROOM
@@ -488,6 +538,16 @@ const mainMenu =
         false;
 
       clearLocalTrapBubble();
+
+      // Hide all AI in multiplayer.
+      for (
+        const ai of
+        aiTadpoles
+      ) {
+
+        ai.model.visible =
+          false;
+      }
 
       multiplayer.createRoom();
     },
@@ -512,6 +572,16 @@ const mainMenu =
 
       clearLocalTrapBubble();
 
+      // Hide all AI in multiplayer.
+      for (
+        const ai of
+        aiTadpoles
+      ) {
+
+        ai.model.visible =
+          false;
+      }
+
       multiplayer.joinRoom(
         roomCode
       );
@@ -519,6 +589,8 @@ const mainMenu =
 
     // LEAVE ROOM
     () => {
+
+      pointerLock.unlock();
 
       multiplayerGame =
         false;
@@ -537,6 +609,17 @@ const mainMenu =
 
       clearLocalTrapBubble();
 
+      // Keep AI hidden until VS AI
+      // is selected again.
+      for (
+        const ai of
+        aiTadpoles
+      ) {
+
+        ai.model.visible =
+          false;
+      }
+
       player.model.visible =
         false;
 
@@ -547,6 +630,10 @@ const mainMenu =
 
     // START GAME
     () => {
+
+      // This is a direct user click,
+      // so the browser allows pointer lock.
+      pointerLock.lock();
 
       multiplayer.startGame();
     }
@@ -745,6 +832,8 @@ multiplayer.setStateListener(
         playerTrapped =
           false;
 
+        pointerLock.unlock();
+
         clearLocalTrapBubble();
 
         player.setTrapped(
@@ -782,6 +871,8 @@ multiplayer.setStateListener(
       roomCode
     ) {
 
+      pointerLock.unlock();
+
       gameStarted =
         false;
 
@@ -802,6 +893,17 @@ multiplayer.setStateListener(
 
       player.model.visible =
         false;
+
+      // Make absolutely sure AI
+      // stays hidden in multiplayer.
+      for (
+        const ai of
+        aiTadpoles
+      ) {
+
+        ai.model.visible =
+          false;
+      }
 
       deathScreen.hide();
 
@@ -836,6 +938,17 @@ multiplayer.setStateListener(
       aiRoundOver =
         false;
 
+      // AI must never appear
+      // in Play With Friends.
+      for (
+        const ai of
+        aiTadpoles
+      ) {
+
+        ai.model.visible =
+          false;
+      }
+
       deathScreen.hide();
 
       mainMenu.hide();
@@ -863,6 +976,18 @@ multiplayer.setStateListener(
 
       multiplayerGame =
         true;
+
+      pointerLock.unlock();
+
+      // AI must stay hidden.
+      for (
+        const ai of
+        aiTadpoles
+      ) {
+
+        ai.model.visible =
+          false;
+      }
 
       hud.setPlayersAlive(
         state.players.filter(
@@ -960,29 +1085,6 @@ function sendMultiplayerPlayerState() {
 }
 
 // ==============================
-// HUD
-// ==============================
-
-const hud =
-  createGameHud();
-
-hud.setRole(
-  player.isIt
-);
-
-hud.setAlive(
-  true
-);
-
-hud.setPlayersAlive(
-  12
-);
-
-hud.setCrosshairVisible(
-  true
-);
-
-// ==============================
 // MOBILE ATTACK BUTTON
 // ==============================
 
@@ -1018,14 +1120,16 @@ mobileAttack?.addEventListener(
 );
 
 // ==============================
-// DEATH SCREEN
+// GAME OVER SCREEN
 // ==============================
 
-const deathScreen =
+deathScreen =
   createDeathScreen(
 
     // SPECTATE
     () => {
+
+      pointerLock.unlock();
 
       playerDead =
         true;
@@ -1055,6 +1159,8 @@ const deathScreen =
     // RETURN TO LOBBY / MENU
     () => {
 
+      pointerLock.unlock();
+
       if (
         multiplayerGame
       ) {
@@ -1081,6 +1187,16 @@ const deathScreen =
           false;
 
         clearRemotePlayers();
+
+        // Hide AI.
+        for (
+          const ai of
+          aiTadpoles
+        ) {
+
+          ai.model.visible =
+            false;
+        }
 
         deathScreen.hide();
 
@@ -1110,6 +1226,15 @@ const deathScreen =
       player.model.visible =
         false;
 
+      for (
+        const ai of
+        aiTadpoles
+      ) {
+
+        ai.model.visible =
+          false;
+      }
+
       deathScreen.hide();
 
       window.location.href =
@@ -1135,6 +1260,9 @@ const deathScreen =
           ai.reset(
             scene
           );
+
+          ai.model.visible =
+            true;
         }
 
         playerDead =
@@ -1172,6 +1300,8 @@ const deathScreen =
         );
 
         updateCombatTargets();
+
+        pointerLock.lock();
 
         return;
       }
@@ -1248,13 +1378,7 @@ function closeExitMenu() {
     'visible'
   );
 
-  if (
-    typeof document.exitPointerLock ===
-    'function'
-  ) {
-
-    document.exitPointerLock();
-  }
+  pointerLock.unlock();
 }
 
 function openExitMenu() {
@@ -1274,13 +1398,7 @@ function openExitMenu() {
     'visible'
   );
 
-  if (
-    typeof document.exitPointerLock ===
-    'function'
-  ) {
-
-    document.exitPointerLock();
-  }
+  pointerLock.unlock();
 }
 
 function exitToMainMenu() {
@@ -1311,6 +1429,17 @@ function exitToMainMenu() {
   player.model.visible =
     false;
 
+  // Hide AI when returning
+  // to the main menu.
+  for (
+    const ai of
+    aiTadpoles
+  ) {
+
+    ai.model.visible =
+      false;
+  }
+
   deathScreen.hide();
 
   clearRemotePlayers();
@@ -1325,6 +1454,15 @@ resumeButton?.addEventListener(
   () => {
 
     closeExitMenu();
+
+    // Resume is a user gesture,
+    // so pointer lock is allowed.
+    if (
+      gameStarted &&
+      !playerDead
+    ) {
+      pointerLock.lock();
+    }
   }
 );
 
@@ -1461,6 +1599,11 @@ if (
 
   player.model.visible =
     false;
+
+  // NOTE:
+  // URL auto-start cannot reliably
+  // trigger pointer lock because it
+  // is not a user gesture.
 }
 
 // ==============================
@@ -1546,11 +1689,8 @@ for (
       // PLAYER TRAPPED
       (bubble) => {
 
-        // AI must NOT locally trap
-        // the player in multiplayer.
-        // Multiplayer uses the server
-        // for player-vs-player trapping.
-
+        // AI cannot trap the local
+        // player during multiplayer.
         if (
           multiplayerGame ||
           playerTrapped ||
@@ -1584,11 +1724,8 @@ for (
       // PLAYER DIED
       () => {
 
-        // IMPORTANT:
-        // AI cannot trigger the local
-        // single-player death screen
-        // while playing multiplayer.
-
+        // AI cannot kill the local
+        // player during multiplayer.
         if (
           multiplayerGame
         ) {
@@ -1606,6 +1743,8 @@ for (
 
         playerTrapped =
           false;
+
+        pointerLock.unlock();
 
         hud.setTrapped(
           false,
@@ -1632,6 +1771,11 @@ for (
   ai.model.position.copy(
     aiSpawnPositions[i]
   );
+
+  // AI starts hidden.
+  // VS AI explicitly enables it.
+  ai.model.visible =
+    false;
 
   aiTadpoles.push(
     ai
@@ -1691,16 +1835,10 @@ function animate() {
   // AI
   // ============================
 
-  // AI now runs in BOTH:
-  // - VS AI
-  // - Play With Friends
-  //
-  // With the current AITadpole
-  // implementation, each client-side
-  // AI follows that client's local
-  // player.
-
+  // AI ONLY runs in VS AI.
+  // It does NOT run in multiplayer.
   if (
+    !multiplayerGame &&
     !aiRoundOver
   ) {
 
@@ -1738,6 +1876,8 @@ function animate() {
 
       aiRoundOver =
         true;
+
+      pointerLock.unlock();
 
       hud.setCrosshairVisible(
         false
