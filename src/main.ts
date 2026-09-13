@@ -243,12 +243,10 @@ let playerDead =
 // ==============================
 
 function clearRemotePlayers() {
-
   for (
     const remote of
     remotePlayers.values()
   ) {
-
     remote.destroy();
   }
 
@@ -264,12 +262,8 @@ const mainMenu =
 
     player.model,
 
-    // --------------------------
     // VS AI
-    // --------------------------
-
     () => {
-
       multiplayerGame =
         false;
 
@@ -286,40 +280,26 @@ const mainMenu =
         false;
     },
 
-    // --------------------------
     // CREATE ROOM
-    // --------------------------
-
     () => {
-
       multiplayerGame =
         true;
 
       multiplayer.createRoom();
-
     },
 
-    // --------------------------
     // JOIN ROOM
-    // --------------------------
-
     (roomCode) => {
-
       multiplayerGame =
         true;
 
       multiplayer.joinRoom(
         roomCode
       );
-
     },
 
-    // --------------------------
     // LEAVE ROOM
-    // --------------------------
-
     () => {
-
       multiplayerGame =
         false;
 
@@ -338,17 +318,11 @@ const mainMenu =
       clearRemotePlayers();
 
       multiplayer.leaveRoom();
-
     },
 
-    // --------------------------
     // START GAME
-    // --------------------------
-
     () => {
-
       multiplayer.startGame();
-
     }
   );
 
@@ -358,7 +332,6 @@ const mainMenu =
 
 multiplayer.setStateListener(
   (state) => {
-
     console.log(
       'Multiplayer game state:',
       state
@@ -370,14 +343,9 @@ multiplayer.setStateListener(
     const playerId =
       multiplayer.getPlayerId();
 
-    // ==========================
-    // UPDATE REMOTE PLAYERS
-    // ==========================
-
     if (
       multiplayerGame
     ) {
-
       const currentRemoteIds =
         new Set<string>();
 
@@ -385,7 +353,6 @@ multiplayer.setStateListener(
         const networkPlayer of
         state.players
       ) {
-
         if (
           networkPlayer.id ===
           playerId
@@ -403,7 +370,6 @@ multiplayer.setStateListener(
           );
 
         if (!remote) {
-
           remote =
             new RemotePlayer(
               scene,
@@ -414,9 +380,7 @@ multiplayer.setStateListener(
             networkPlayer.id,
             remote
           );
-
         } else {
-
           remote.updateFromNetwork(
             networkPlayer
           );
@@ -429,13 +393,11 @@ multiplayer.setStateListener(
           remote
         ] of remotePlayers
       ) {
-
         if (
           !currentRemoteIds.has(
             id
           )
         ) {
-
           remote.destroy();
 
           remotePlayers.delete(
@@ -453,7 +415,6 @@ multiplayer.setStateListener(
       state.phase === 'lobby' &&
       roomCode
     ) {
-
       gameStarted =
         false;
 
@@ -483,13 +444,12 @@ multiplayer.setStateListener(
     }
 
     // ==========================
-    // GAME STARTED
+    // PLAYING
     // ==========================
 
     if (
       state.phase === 'playing'
     ) {
-
       gameStarted =
         true;
 
@@ -509,6 +469,13 @@ multiplayer.setStateListener(
 
       mainMenu.hide();
 
+      hud.setPlayersAlive(
+        state.players.filter(
+          (networkPlayer) =>
+            networkPlayer.alive
+        ).length
+      );
+
       return;
     }
 
@@ -519,12 +486,18 @@ multiplayer.setStateListener(
     if (
       state.phase === 'ended'
     ) {
-
       gameStarted =
         true;
 
       multiplayerGame =
         true;
+
+      hud.setPlayersAlive(
+        state.players.filter(
+          (networkPlayer) =>
+            networkPlayer.alive
+        ).length
+      );
 
       const isHost =
         playerId ===
@@ -543,7 +516,6 @@ multiplayer.setStateListener(
 // ==============================
 
 function sendMultiplayerPlayerState() {
-
   if (
     !multiplayerGame ||
     !gameStarted
@@ -563,7 +535,6 @@ function sendMultiplayerPlayerState() {
 
   const networkPlayer:
     NetworkPlayer = {
-
     id:
       playerId,
 
@@ -639,10 +610,10 @@ const mobileAttack =
   );
 
 mobileAttack?.addEventListener(
-  'touchstart',
+  'pointerdown',
   (event) => {
-
     event.preventDefault();
+    event.stopPropagation();
 
     if (
       !gameStarted ||
@@ -659,10 +630,6 @@ mobileAttack?.addEventListener(
     }
 
     player.startAttack();
-
-  },
-  {
-    passive: false
   }
 );
 
@@ -673,12 +640,8 @@ mobileAttack?.addEventListener(
 const deathScreen =
   createDeathScreen(
 
-    // --------------------------
     // SPECTATE
-    // --------------------------
-
     () => {
-
       playerDead =
         true;
 
@@ -702,16 +665,11 @@ const deathScreen =
         false;
     },
 
-    // --------------------------
     // RETURN TO LOBBY
-    // --------------------------
-
     () => {
-
       if (
         multiplayerGame
       ) {
-
         playerDead =
           false;
 
@@ -751,12 +709,8 @@ const deathScreen =
         window.location.pathname;
     },
 
-    // --------------------------
     // PLAY AGAIN
-    // --------------------------
-
     () => {
-
       if (
         !multiplayerGame
       ) {
@@ -821,7 +775,6 @@ const exitToMenuButton =
   );
 
 function closeExitMenu() {
-
   exitMenuOpen =
     false;
 
@@ -838,7 +791,6 @@ function closeExitMenu() {
 }
 
 function openExitMenu() {
-
   if (
     !gameStarted ||
     playerDead ||
@@ -863,7 +815,6 @@ function openExitMenu() {
 }
 
 function exitToMainMenu() {
-
   closeExitMenu();
 
   playerDead =
@@ -907,7 +858,6 @@ exitToMenuButton?.addEventListener(
 window.addEventListener(
   'keydown',
   (event) => {
-
     if (
       event.key !==
       'Escape'
@@ -920,13 +870,9 @@ window.addEventListener(
     if (
       exitMenuOpen
     ) {
-
       closeExitMenu();
-
     } else {
-
       openExitMenu();
-
     }
   }
 );
@@ -938,7 +884,6 @@ window.addEventListener(
 window.addEventListener(
   'mousedown',
   (event) => {
-
     if (
       event.button !== 0
     ) {
@@ -983,17 +928,12 @@ document.body.appendChild(
 mobileExit.addEventListener(
   'click',
   () => {
-
     if (
       exitMenuOpen
     ) {
-
       closeExitMenu();
-
     } else {
-
       openExitMenu();
-
     }
   }
 );
@@ -1011,7 +951,6 @@ const shouldStartAI =
 if (
   shouldStartAI
 ) {
-
   multiplayerGame =
     false;
 
@@ -1062,7 +1001,6 @@ createOceanVegetation(
 // ==============================
 
 const aiSpawnPositions = [
-
   new THREE.Vector3(
     15,
     -5,
@@ -1092,7 +1030,6 @@ const aiSpawnPositions = [
     -12,
     -25
   ),
-
 ];
 
 const aiTadpoles:
@@ -1108,19 +1045,14 @@ for (
   aiSpawnPositions.length;
   i++
 ) {
-
   const ai =
     new AITadpole(
       scene,
       camera,
       rockColliders,
 
-      // ==========================
       // PLAYER TRAPPED
-      // ==========================
-
       (bubble) => {
-
         if (
           multiplayerGame ||
           playerTrapped ||
@@ -1151,12 +1083,8 @@ for (
         );
       },
 
-      // ==========================
       // PLAYER DIED
-      // ==========================
-
       () => {
-
         if (
           playerDead
         ) {
@@ -1226,7 +1154,6 @@ const clock =
 // ==============================
 
 function animate() {
-
   requestAnimationFrame(
     animate
   );
@@ -1241,8 +1168,9 @@ function animate() {
   // MAIN MENU
   // ============================
 
-  if (!gameStarted) {
-
+  if (
+    !gameStarted
+  ) {
     mainMenu.update(
       performance.now()
     );
@@ -1263,7 +1191,6 @@ function animate() {
     const remote of
     remotePlayers.values()
   ) {
-
     remote.update(
       delta
     );
@@ -1276,12 +1203,10 @@ function animate() {
   if (
     !multiplayerGame
   ) {
-
     for (
       const ai of
       aiTadpoles
     ) {
-
       ai.update(
         delta,
         scene
@@ -1309,7 +1234,6 @@ function animate() {
   if (
     multiplayerGame
   ) {
-
     multiplayerSendTimer +=
       delta;
 
@@ -1317,7 +1241,6 @@ function animate() {
       multiplayerSendTimer >=
       0.05
     ) {
-
       multiplayerSendTimer =
         0;
 
@@ -1339,6 +1262,37 @@ function animate() {
   );
 
   // ============================
+  // PLAYERS ALIVE
+  // ============================
+
+  if (
+    multiplayerGame
+  ) {
+    const state =
+      multiplayer.getGameState();
+
+    if (state) {
+      hud.setPlayersAlive(
+        state.players.filter(
+          (networkPlayer) =>
+            networkPlayer.alive
+        ).length
+      );
+    }
+  } else {
+    const aliveAITadpoles =
+      aiTadpoles.filter(
+        (ai) =>
+          ai.isAlive()
+      ).length;
+
+    hud.setPlayersAlive(
+      aliveAITadpoles +
+      (playerDead ? 0 : 1)
+    );
+  }
+
+  // ============================
   // DEPTH
   // ============================
 
@@ -1358,16 +1312,13 @@ function animate() {
     !multiplayerGame &&
     !playerDead
   ) {
-
     for (
       const ai of
       aiTadpoles
     ) {
-
       if (
         ai.bubble
       ) {
-
         activeBubble =
           ai.bubble;
 
@@ -1424,20 +1375,16 @@ function animate() {
   if (
     mobileBoost
   ) {
-
     if (
       !boostUsable
     ) {
-
       mobileBoost.textContent =
-        'BOOST';
+        '( / )';
 
       mobileBoost.classList.add(
         'locked'
       );
-
     } else {
-
       mobileBoost.classList.remove(
         'locked'
       );
@@ -1445,15 +1392,11 @@ function animate() {
       if (
         boostCooldown <= 0
       ) {
-
         mobileBoost.textContent =
           'BOOST';
-
       } else {
-
         mobileBoost.textContent =
           `BOOST ${boostCooldown.toFixed(1)}`;
-
       }
     }
   }
@@ -1465,20 +1408,16 @@ function animate() {
   if (
     mobileAttack
   ) {
-
     if (
       !attackUsable
     ) {
-
       mobileAttack.textContent =
-        'BURST';
+        '( / )';
 
       mobileAttack.classList.add(
         'locked'
       );
-
     } else {
-
       mobileAttack.classList.remove(
         'locked'
       );
@@ -1486,15 +1425,11 @@ function animate() {
       if (
         attackCooldown <= 0
       ) {
-
         mobileAttack.textContent =
           'BURST';
-
       } else {
-
         mobileAttack.textContent =
-          attackCooldown.toFixed(1);
-
+          `BURST ${attackCooldown.toFixed(1)}`;
       }
     }
   }
@@ -1514,15 +1449,12 @@ function animate() {
   if (
     aboveWater
   ) {
-
     scene.background =
       aboveWaterColor;
 
     scene.fog =
       null;
-
   } else {
-
     scene.background =
       underwaterColor;
 
@@ -1566,7 +1498,6 @@ function animate() {
   if (
     !playerDead
   ) {
-
     updateFlashlight(
       player.camera,
       flashlightSystem.flashlight,
@@ -1602,7 +1533,6 @@ function animate() {
 window.addEventListener(
   'resize',
   () => {
-
     camera.aspect =
       window.innerWidth /
       window.innerHeight;

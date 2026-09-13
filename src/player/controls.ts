@@ -23,10 +23,6 @@ export function createControls(
     'ontouchstart' in window ||
     navigator.maxTouchPoints > 0;
 
-  // ==============================
-  // PC KEYBOARD
-  // ==============================
-
   window.addEventListener(
     'keydown',
     (event) => {
@@ -58,10 +54,6 @@ export function createControls(
       }
     }
   );
-
-  // ==============================
-  // DESKTOP POINTER LOCK
-  // ==============================
 
   if (!isMobile) {
     domElement.addEventListener(
@@ -101,10 +93,6 @@ export function createControls(
     );
   }
 
-  // ==============================
-  // MOBILE CONTROLS
-  // ==============================
-
   if (isMobile) {
     createMobileControls();
   }
@@ -124,6 +112,13 @@ export function createControls(
       </div>
 
       <div id="mobile-look"></div>
+
+      <button
+        id="mobile-attack"
+        type="button"
+      >
+        BURST
+      </button>
 
       <button
         id="mobile-boost"
@@ -166,6 +161,11 @@ export function createControls(
         'mobile-look'
       );
 
+    const attack =
+      document.getElementById(
+        'mobile-attack'
+      );
+
     const boost =
       document.getElementById(
         'mobile-boost'
@@ -181,10 +181,6 @@ export function createControls(
         'mobile-down'
       );
 
-    // ==========================
-    // JOYSTICK
-    // ==========================
-
     let joystickPointerId:
       number | null = null;
 
@@ -194,6 +190,7 @@ export function createControls(
       'pointerdown',
       (event) => {
         event.preventDefault();
+        event.stopPropagation();
 
         joystickPointerId =
           event.pointerId;
@@ -238,10 +235,17 @@ export function createControls(
         joystickPointerId =
           null;
 
-        keys['KeyW'] = false;
-        keys['KeyS'] = false;
-        keys['KeyA'] = false;
-        keys['KeyD'] = false;
+        keys['KeyW'] =
+          false;
+
+        keys['KeyS'] =
+          false;
+
+        keys['KeyA'] =
+          false;
+
+        keys['KeyD'] =
+          false;
 
         if (stick) {
           stick.style.transform =
@@ -262,7 +266,10 @@ export function createControls(
     function updateJoystick(
       event: PointerEvent
     ) {
-      if (!joystick || !stick) {
+      if (
+        !joystick ||
+        !stick
+      ) {
         return;
       }
 
@@ -326,10 +333,6 @@ export function createControls(
         normalizedX > 0.25;
     }
 
-    // ==========================
-    // MOBILE LOOK
-    // ==========================
-
     let lookPointerId:
       number | null = null;
 
@@ -340,6 +343,7 @@ export function createControls(
       'pointerdown',
       (event) => {
         event.preventDefault();
+        event.stopPropagation();
 
         lookPointerId =
           event.pointerId;
@@ -408,7 +412,8 @@ export function createControls(
           event.pointerId ===
           lookPointerId
         ) {
-          lookPointerId = null;
+          lookPointerId =
+            null;
         }
       };
 
@@ -422,35 +427,60 @@ export function createControls(
       releaseLook
     );
 
-    // ==========================
-    // BOOST
-    // ==========================
+    attack?.addEventListener(
+      'pointerdown',
+      (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    );
 
     boost?.addEventListener(
       'pointerdown',
       (event) => {
         event.preventDefault();
+        event.stopPropagation();
 
-        boostPressed = true;
+        boostPressed =
+          true;
       }
     );
 
-    // ==========================
-    // UP
-    // ==========================
+    let upPointerId:
+      number | null = null;
 
     up?.addEventListener(
       'pointerdown',
       (event) => {
         event.preventDefault();
+        event.stopPropagation();
 
-        keys['Space'] = true;
+        upPointerId =
+          event.pointerId;
+
+        keys['Space'] =
+          true;
+
+        up.setPointerCapture(
+          event.pointerId
+        );
       }
     );
 
     const releaseUp =
-      () => {
-        keys['Space'] = false;
+      (event: PointerEvent) => {
+        if (
+          event.pointerId !==
+          upPointerId
+        ) {
+          return;
+        }
+
+        upPointerId =
+          null;
+
+        keys['Space'] =
+          false;
       };
 
     up?.addEventListener(
@@ -463,27 +493,41 @@ export function createControls(
       releaseUp
     );
 
-    up?.addEventListener(
-      'pointerleave',
-      releaseUp
-    );
-
-    // ==========================
-    // DOWN
-    // ==========================
+    let downPointerId:
+      number | null = null;
 
     down?.addEventListener(
       'pointerdown',
       (event) => {
         event.preventDefault();
+        event.stopPropagation();
 
-        keys['ControlLeft'] = true;
+        downPointerId =
+          event.pointerId;
+
+        keys['ControlLeft'] =
+          true;
+
+        down.setPointerCapture(
+          event.pointerId
+        );
       }
     );
 
     const releaseDown =
-      () => {
-        keys['ControlLeft'] = false;
+      (event: PointerEvent) => {
+        if (
+          event.pointerId !==
+          downPointerId
+        ) {
+          return;
+        }
+
+        downPointerId =
+          null;
+
+        keys['ControlLeft'] =
+          false;
       };
 
     down?.addEventListener(
@@ -493,11 +537,6 @@ export function createControls(
 
     down?.addEventListener(
       'pointercancel',
-      releaseDown
-    );
-
-    down?.addEventListener(
-      'pointerleave',
       releaseDown
     );
   }
@@ -518,7 +557,8 @@ export function createControls(
         return false;
       }
 
-      boostPressed = false;
+      boostPressed =
+        false;
 
       return true;
     },
