@@ -3,75 +3,40 @@ import * as THREE from 'three';
 import './style.css';
 import './debug/errorCatcher';
 
-import {
-  MultiplayerClient
-} from './multiplayer/multiplayerClient';
+import { gameState } from './game/gameState';
+import { GameFlow } from './game/gameFlow';
+import { GameLoop } from './game/gameLoop';
 
-import {
-  RemotePlayer
-} from './multiplayer/remotePlayer';
+import { createCombatController } from './game/combatController';
+import { createGameWorldController } from './game/gameWorldController';
 
-import {
-  Player
-} from './player/player';
+import { MultiplayerClient } from './multiplayer/multiplayerClient';
+import { MultiplayerGame } from './multiplayer/multiplayerGame';
+import { RemotePlayerManager } from './multiplayer/remotePlayerManager';
+import { createMultiplayerController } from './multiplayer/multiplayerController';
 
-import {
-  createDeathScreen
-} from './ui/gameOverScreen';
+import { Player } from './player/player';
+import { createPlayerController } from './player/playerController';
+import { createControls } from './player/controls';
+import { createFlashlight } from './player/flashlight';
 
-import {
-  createGameHud
-} from './ui/gameHud';
+import { AIManager } from './player/ai/aiManager';
 
-import {
-  createControls
-} from './player/controls';
+import { clearLocalTrapBubble } from './player/combat/localTrapBubble';
+import type { LocalTrapBubble } from './player/combat/localTrapBubble';
 
-import {
-  createPointerLock
-} from './ui/pointerLock';
+import { WorldManager } from './world/worldManager';
 
-import {
-  AITadpole
-} from './player/ai/aiTadpole';
+import { createDeathScreen } from './ui/gameOverScreen';
+import { createGameHud } from './ui/gameHud';
+import { createHudController } from './ui/hudController';
+import { createInputManager } from './ui/inputManager';
+import { createPointerLock } from './ui/pointerLock';
+import { createPauseMenu } from './ui/pauseMenu';
 
-import {
-  createRocks
-} from './world/rocks';
+import { MainMenu } from './menu/mainMenu';
 
-import {
-  updateRockCollisions
-} from './world/collisions';
-
-import {
-  createOceanVegetation,
-  updateSeaweed
-} from './world/oceanVegetation';
-
-import {
-  createOcean
-} from './world/ocean';
-
-import {
-  updateBoundaries
-} from './world/boundaries';
-
-import {
-  createFlashlight,
-  updateFlashlight
-} from './player/flashlight';
-
-import {
-  getBoostCooldown,
-} from './player/movement';
-
-import {
-  MainMenu
-} from './menu/mainMenu';
-
-import type {
-  NetworkPlayer
-} from './multiplayer/gameState';
+import type { MultiplayerController } from './multiplayer/multiplayerController';
 
 // ==============================
 // SCENE
@@ -83,11 +48,6 @@ const scene =
 const underwaterColor =
   new THREE.Color(
     0x03131d
-  );
-
-const aboveWaterColor =
-  new THREE.Color(
-    0x02050c
   );
 
 scene.background =
@@ -194,6 +154,26 @@ const player =
   );
 
 // ==============================
+// WORLD
+// ==============================
+
+const worldManager =
+  new WorldManager(
+    scene
+  );
+
+worldManager.create();
+
+// ==============================
+// FLASHLIGHT
+// ==============================
+
+const flashlightSystem =
+  createFlashlight(
+    scene
+  );
+
+// ==============================
 // MULTIPLAYER
 // ==============================
 
@@ -202,7 +182,6 @@ const multiplayer =
 
 multiplayer.setStatusListener(
   (status) => {
-
     console.log(
       'Multiplayer status:',
       status
@@ -224,201 +203,27 @@ multiplayer.connect(
 // REMOTE PLAYERS
 // ==============================
 
-const remotePlayers =
-  new Map<
-    string,
-    RemotePlayer
-  >();
-
-let multiplayerSendTimer =
-  0;
-
-// ==============================
-// GAME STATE
-// ==============================
-
-let gameStarted =
-  false;
-
-let multiplayerGame =
-  false;
-
-let playerTrapped =
-  false;
-
-let playerDead =
-  false;
-
-let aiRoundOver =
-  false;
+const remotePlayerManager =
+  new RemotePlayerManager(
+    scene,
+    multiplayer
+  );
 
 // ==============================
 // LOCAL TRAP BUBBLE
 // ==============================
 
 let localTrapBubble:
-  THREE.Mesh | null =
+  LocalTrapBubble | null =
   null;
 
-let localTrapStartY =
-  0;
-
-let localTrapStartedAt:
-  number | null =
-  null;
-
-let localTrapEndAt:
-  number | null =
-  null;
-
-// ==============================
-// CLEAN TRAP BUBBLE
-// ==============================
-
-function clearLocalTrapBubble() {
-
-  if (
-    !localTrapBubble
-  ) {
-    return;
-  }
-
-  localTrapBubble.removeFromParent();
-
-  localTrapBubble.geometry.dispose();
-
-  const material =
-    localTrapBubble.material;
-
-  if (
-    Array.isArray(material)
-  ) {
-
-    material.forEach(
-      (item) => {
-        item.dispose();
-      }
-    );
-
-  } else {
-
-    material.dispose();
-  }
-
-  localTrapBubble =
-    null;
-
-  localTrapStartedAt =
-    null;
-
-  localTrapEndAt =
-    null;
-}
-
-// ==============================
-// CREATE LOCAL TRAP BUBBLE
-// ==============================
-
-function createLocalTrapBubble(
-  networkPlayer: NetworkPlayer
-) {
-
-  clearLocalTrapBubble();
-
-  const geometry =
-    new THREE.SphereGeometry(
-      1.8,
-      24,
-      16
-    );
-
-  const material =
-    new THREE.MeshPhysicalMaterial({
-      transparent: true,
-      opacity: 0.22,
-      roughness: 0,
-      metalness: 0,
-      transmission: 0.85,
-      thickness: 0.2,
-    });
-
-  localTrapBubble =
-    new THREE.Mesh(
-      geometry,
-      material
-    );
-
-  localTrapStartY =
-    networkPlayer.y;
-
-  localTrapStartedAt =
-    networkPlayer.trappedAt;
-
-  localTrapEndAt =
-    networkPlayer.trapEndAt;
-
-  localTrapBubble.position.set(
-    networkPlayer.x,
-    networkPlayer.y,
-    networkPlayer.z
-  );
-
-  scene.add(
+function clearCurrentLocalTrap(): void {
+  clearLocalTrapBubble(
     localTrapBubble
   );
-}
 
-// ==============================
-// CLEAR REMOTE PLAYERS
-// ==============================
-
-function clearRemotePlayers() {
-
-  for (
-    const remote of
-    remotePlayers.values()
-  ) {
-
-    remote.destroy();
-  }
-
-  remotePlayers.clear();
-
-  player.setCombatTargets(
-    multiplayerGame
-      ? []
-      : aiTadpoles.map(
-          (ai) =>
-            ai.getCombatTarget()
-        )
-  );
-}
-
-// ==============================
-// UPDATE COMBAT TARGETS
-// ==============================
-
-function updateCombatTargets() {
-
-  if (
-    multiplayerGame
-  ) {
-
-    player.setCombatTargets(
-      Array.from(
-        remotePlayers.values()
-      )
-    );
-
-    return;
-  }
-
-  player.setCombatTargets(
-    aiTadpoles.map(
-      (ai) =>
-        ai.getCombatTarget()
-    )
-  );
+  localTrapBubble =
+    null;
 }
 
 // ==============================
@@ -452,1255 +257,59 @@ let deathScreen:
   ReturnType<typeof createDeathScreen>;
 
 // ==============================
+// PAUSE MENU
+// ==============================
+
+let pauseMenu:
+  ReturnType<typeof createPauseMenu>;
+
+// ==============================
 // MAIN MENU
 // ==============================
 
-const mainMenu =
-  new MainMenu(
+let mainMenu:
+  MainMenu;
 
-    player.model,
+// ==============================
+// MULTIPLAYER CONTROLLER
+// ==============================
 
-    // VS AI
-    () => {
+let multiplayerController:
+  MultiplayerController;
 
-      multiplayerGame =
-        false;
+// ==============================
+// MULTIPLAYER GAME
+// ==============================
 
-      gameStarted =
-        true;
-
-      playerDead =
-        false;
-
-      playerTrapped =
-        false;
-
-      aiRoundOver =
-        false;
-
-      clearLocalTrapBubble();
-
-      clearRemotePlayers();
-
-      // Reset all AI for a fresh round.
-      for (
-        const ai of
-        aiTadpoles
-      ) {
-
-        ai.reset(
-          scene
-        );
-
-        ai.model.visible =
-          true;
-      }
-
-      player.model.visible =
-        false;
-
-      hud.setAlive(
-        true
-      );
-
-      hud.setTrapped(
-        false,
-        null
-      );
-
-      hud.setCrosshairVisible(
-        true
-      );
-
-      updateCombatTargets();
-
-      // Automatically lock mouse
-      // when the game starts.
-      pointerLock.lock();
-    },
-
-    // CREATE ROOM
-    () => {
-
-      multiplayerGame =
-        true;
-
-      gameStarted =
-        false;
-
-      playerDead =
-        false;
-
-      playerTrapped =
-        false;
-
-      aiRoundOver =
-        false;
-
-      clearLocalTrapBubble();
-
-      // Hide all AI in multiplayer.
-      for (
-        const ai of
-        aiTadpoles
-      ) {
-
-        ai.model.visible =
-          false;
-      }
-
-      multiplayer.createRoom();
-    },
-
-    // JOIN ROOM
-    (roomCode) => {
-
-      multiplayerGame =
-        true;
-
-      gameStarted =
-        false;
-
-      playerDead =
-        false;
-
-      playerTrapped =
-        false;
-
-      aiRoundOver =
-        false;
-
-      clearLocalTrapBubble();
-
-      // Hide all AI in multiplayer.
-      for (
-        const ai of
-        aiTadpoles
-      ) {
-
-        ai.model.visible =
-          false;
-      }
-
-      multiplayer.joinRoom(
-        roomCode
-      );
-    },
-
-    // LEAVE ROOM
-    () => {
-
-      pointerLock.unlock();
-
-      multiplayerGame =
-        false;
-
-      gameStarted =
-        false;
-
-      playerDead =
-        false;
-
-      playerTrapped =
-        false;
-
-      aiRoundOver =
-        false;
-
-      clearLocalTrapBubble();
-
-      // Keep AI hidden until VS AI
-      // is selected again.
-      for (
-        const ai of
-        aiTadpoles
-      ) {
-
-        ai.model.visible =
-          false;
-      }
-
-      player.model.visible =
-        false;
-
-      clearRemotePlayers();
-
-      multiplayer.leaveRoom();
-    },
-
-    // START GAME
-    () => {
-
-      // This is a direct user click,
-      // so the browser allows pointer lock.
-      pointerLock.lock();
-
-      multiplayer.startGame();
-    }
+const multiplayerGame =
+  new MultiplayerGame(
+    multiplayer
   );
-
-// ==============================
-// MULTIPLAYER STATE
-// ==============================
-
-multiplayer.setStateListener(
-  (state) => {
-
-    console.log(
-      'Multiplayer game state:',
-      state
-    );
-
-    const roomCode =
-      multiplayer.getRoomCode();
-
-    const playerId =
-      multiplayer.getPlayerId();
-
-    // ==========================
-    // REMOTE PLAYERS
-    // ==========================
-
-    if (
-      multiplayerGame
-    ) {
-
-      const currentRemoteIds =
-        new Set<string>();
-
-      for (
-        const networkPlayer of
-        state.players
-      ) {
-
-        if (
-          networkPlayer.id ===
-          playerId
-        ) {
-          continue;
-        }
-
-        currentRemoteIds.add(
-          networkPlayer.id
-        );
-
-        let remote =
-          remotePlayers.get(
-            networkPlayer.id
-          );
-
-        if (
-          !remote
-        ) {
-
-          remote =
-            new RemotePlayer(
-              scene,
-              networkPlayer,
-              multiplayer
-            );
-
-          remotePlayers.set(
-            networkPlayer.id,
-            remote
-          );
-
-        } else {
-
-          remote.updateFromNetwork(
-            networkPlayer
-          );
-        }
-      }
-
-      for (
-        const [
-          id,
-          remote
-        ] of remotePlayers
-      ) {
-
-        if (
-          !currentRemoteIds.has(
-            id
-          )
-        ) {
-
-          remote.destroy();
-
-          remotePlayers.delete(
-            id
-          );
-        }
-      }
-
-      updateCombatTargets();
-    }
-
-    // ==========================
-    // LOCAL PLAYER STATE
-    // ==========================
-
-    const localNetworkPlayer =
-      state.players.find(
-        (networkPlayer) =>
-          networkPlayer.id ===
-          playerId
-      );
-
-    if (
-      localNetworkPlayer
-    ) {
-
-      // --------------------------
-      // SERVER TRAPPED US
-      // --------------------------
-
-      if (
-        localNetworkPlayer.trapped &&
-        !playerTrapped &&
-        !playerDead
-      ) {
-
-        playerTrapped =
-          true;
-
-        createLocalTrapBubble(
-          localNetworkPlayer
-        );
-
-        player.setTrapped(
-          true,
-          localTrapBubble
-        );
-
-        hud.setAlive(
-          true
-        );
-
-        hud.setTrapped(
-          true,
-          localTrapBubble
-        );
-
-        hud.setCrosshairVisible(
-          false
-        );
-      }
-
-      // --------------------------
-      // SERVER RELEASED US
-      // --------------------------
-
-      if (
-        !localNetworkPlayer.trapped &&
-        playerTrapped &&
-        !localNetworkPlayer.isDrowned
-      ) {
-
-        playerTrapped =
-          false;
-
-        clearLocalTrapBubble();
-
-        player.setTrapped(
-          false
-        );
-
-        hud.setTrapped(
-          false,
-          null
-        );
-
-        hud.setCrosshairVisible(
-          true
-        );
-      }
-
-      // --------------------------
-      // SERVER SAYS WE DROWNED
-      // --------------------------
-
-      if (
-        localNetworkPlayer.isDrowned &&
-        !playerDead
-      ) {
-
-        playerDead =
-          true;
-
-        playerTrapped =
-          false;
-
-        pointerLock.unlock();
-
-        clearLocalTrapBubble();
-
-        player.setTrapped(
-          false
-        );
-
-        hud.setTrapped(
-          false,
-          null
-        );
-
-        hud.setAlive(
-          false
-        );
-
-        hud.setCrosshairVisible(
-          false
-        );
-
-        player.startDeathFloat(
-          () => {
-
-            deathScreen.show();
-          }
-        );
-      }
-    }
-
-    // ==========================
-    // LOBBY
-    // ==========================
-
-    if (
-      state.phase === 'lobby' &&
-      roomCode
-    ) {
-
-      pointerLock.unlock();
-
-      gameStarted =
-        false;
-
-      playerDead =
-        false;
-
-      playerTrapped =
-        false;
-
-      aiRoundOver =
-        false;
-
-      clearLocalTrapBubble();
-
-      player.setTrapped(
-        false
-      );
-
-      player.model.visible =
-        false;
-
-      // Make absolutely sure AI
-      // stays hidden in multiplayer.
-      for (
-        const ai of
-        aiTadpoles
-      ) {
-
-        ai.model.visible =
-          false;
-      }
-
-      deathScreen.hide();
-
-      const isHost =
-        playerId ===
-        state.hostId;
-
-      mainMenu.showLobby(
-        roomCode,
-        state.players.length,
-        state.maxPlayers,
-        isHost
-      );
-
-      return;
-    }
-
-    // ==========================
-    // PLAYING
-    // ==========================
-
-    if (
-      state.phase === 'playing'
-    ) {
-
-      gameStarted =
-        true;
-
-      multiplayerGame =
-        true;
-
-      aiRoundOver =
-        false;
-
-      // AI must never appear
-      // in Play With Friends.
-      for (
-        const ai of
-        aiTadpoles
-      ) {
-
-        ai.model.visible =
-          false;
-      }
-
-      deathScreen.hide();
-
-      mainMenu.hide();
-
-      hud.setPlayersAlive(
-        state.players.filter(
-          (networkPlayer) =>
-            networkPlayer.alive
-        ).length
-      );
-
-      return;
-    }
-
-    // ==========================
-    // ROUND OVER
-    // ==========================
-
-    if (
-      state.phase === 'ended'
-    ) {
-
-      gameStarted =
-        true;
-
-      multiplayerGame =
-        true;
-
-      pointerLock.unlock();
-
-      // AI must stay hidden.
-      for (
-        const ai of
-        aiTadpoles
-      ) {
-
-        ai.model.visible =
-          false;
-      }
-
-      hud.setPlayersAlive(
-        state.players.filter(
-          (networkPlayer) =>
-            networkPlayer.alive
-        ).length
-      );
-
-      const isHost =
-        playerId ===
-        state.hostId;
-
-      deathScreen.show(
-        'round-over',
-        isHost
-      );
-    }
-  }
-);
-
-// ==============================
-// SEND LOCAL PLAYER
-// ==============================
-
-function sendMultiplayerPlayerState() {
-
-  if (
-    !multiplayerGame ||
-    !gameStarted
-  ) {
-    return;
-  }
-
-  const playerId =
-    multiplayer.getPlayerId();
-
-  if (
-    !playerId
-  ) {
-    return;
-  }
-
-  const position =
-    player.camera.position;
-
-  const networkPlayer:
-    NetworkPlayer = {
-
-    id:
-      playerId,
-
-    x:
-      position.x,
-
-    y:
-      position.y,
-
-    z:
-      position.z,
-
-    yaw:
-      player.camera.rotation.y,
-
-    pitch:
-      player.camera.rotation.x,
-
-    vx:
-      0,
-
-    vy:
-      0,
-
-    vz:
-      0,
-
-    alive:
-      !playerDead,
-
-    trapped:
-      playerTrapped,
-
-    isDrowned:
-      playerDead,
-
-    trappedAt:
-      localTrapStartedAt,
-
-    trapEndAt:
-      localTrapEndAt,
-  };
-
-  multiplayer.sendPlayerState(
-    networkPlayer
-  );
-}
-
-// ==============================
-// MOBILE ATTACK BUTTON
-// ==============================
-
-const mobileAttack =
-  document.getElementById(
-    'mobile-attack'
-  );
-
-mobileAttack?.addEventListener(
-  'pointerdown',
-  (event) => {
-
-    event.preventDefault();
-
-    event.stopPropagation();
-
-    if (
-      !gameStarted ||
-      playerDead ||
-      playerTrapped
-    ) {
-      return;
-    }
-
-    if (
-      player.getAttackCooldown() > 0
-    ) {
-      return;
-    }
-
-    player.startAttack();
-  }
-);
-
-// ==============================
-// GAME OVER SCREEN
-// ==============================
-
-deathScreen =
-  createDeathScreen(
-
-    // SPECTATE
-    () => {
-
-      pointerLock.unlock();
-
-      playerDead =
-        true;
-
-      playerTrapped =
-        false;
-
-      clearLocalTrapBubble();
-
-      hud.setTrapped(
-        false,
-        null
-      );
-
-      hud.setAlive(
-        false
-      );
-
-      hud.setCrosshairVisible(
-        false
-      );
-
-      player.model.visible =
-        false;
-    },
-
-    // RETURN TO LOBBY / MENU
-    () => {
-
-      pointerLock.unlock();
-
-      if (
-        multiplayerGame
-      ) {
-
-        playerDead =
-          false;
-
-        playerTrapped =
-          false;
-
-        gameStarted =
-          false;
-
-        aiRoundOver =
-          false;
-
-        clearLocalTrapBubble();
-
-        player.setTrapped(
-          false
-        );
-
-        player.model.visible =
-          false;
-
-        clearRemotePlayers();
-
-        // Hide AI.
-        for (
-          const ai of
-          aiTadpoles
-        ) {
-
-          ai.model.visible =
-            false;
-        }
-
-        deathScreen.hide();
-
-        multiplayer.leaveRoom();
-
-        return;
-      }
-
-      playerDead =
-        false;
-
-      playerTrapped =
-        false;
-
-      gameStarted =
-        false;
-
-      aiRoundOver =
-        false;
-
-      clearLocalTrapBubble();
-
-      player.setTrapped(
-        false
-      );
-
-      player.model.visible =
-        false;
-
-      for (
-        const ai of
-        aiTadpoles
-      ) {
-
-        ai.model.visible =
-          false;
-      }
-
-      deathScreen.hide();
-
-      window.location.href =
-        window.location.pathname;
-    },
-
-    // PLAY AGAIN
-    () => {
-
-      // --------------------------
-      // VS AI
-      // --------------------------
-
-      if (
-        !multiplayerGame
-      ) {
-
-        for (
-          const ai of
-          aiTadpoles
-        ) {
-
-          ai.reset(
-            scene
-          );
-
-          ai.model.visible =
-            true;
-        }
-
-        playerDead =
-          false;
-
-        playerTrapped =
-          false;
-
-        aiRoundOver =
-          false;
-
-        gameStarted =
-          true;
-
-        clearLocalTrapBubble();
-
-        player.setTrapped(
-          false
-        );
-
-        player.model.visible =
-          false;
-
-        hud.setAlive(
-          true
-        );
-
-        hud.setTrapped(
-          false,
-          null
-        );
-
-        hud.setCrosshairVisible(
-          true
-        );
-
-        updateCombatTargets();
-
-        pointerLock.lock();
-
-        return;
-      }
-
-      // --------------------------
-      // MULTIPLAYER
-      // --------------------------
-
-      multiplayer.playAgain();
-    }
-  );
-
-// ==============================
-// EXIT / PAUSE MENU
-// ==============================
-
-let exitMenuOpen =
-  false;
-
-const exitMenu =
-  document.createElement(
-    'div'
-  );
-
-exitMenu.id =
-  'exit-menu';
-
-exitMenu.innerHTML = `
-  <div id="exit-menu-panel">
-
-    <div id="exit-menu-title">
-      PAUSED
-    </div>
-
-    <div id="exit-menu-subtitle">
-      LEAVE THE HUNT?
-    </div>
-
-    <div id="exit-menu-buttons">
-
-      <button id="resume-button">
-        RESUME
-      </button>
-
-      <button id="exit-to-menu-button">
-        EXIT TO MAIN MENU
-      </button>
-
-    </div>
-
-  </div>
-`;
-
-document.body.appendChild(
-  exitMenu
-);
-
-const resumeButton =
-  document.getElementById(
-    'resume-button'
-  );
-
-const exitToMenuButton =
-  document.getElementById(
-    'exit-to-menu-button'
-  );
-
-function closeExitMenu() {
-
-  exitMenuOpen =
-    false;
-
-  exitMenu.classList.remove(
-    'visible'
-  );
-
-  pointerLock.unlock();
-}
-
-function openExitMenu() {
-
-  if (
-    !gameStarted ||
-    playerDead ||
-    exitMenuOpen
-  ) {
-    return;
-  }
-
-  exitMenuOpen =
-    true;
-
-  exitMenu.classList.add(
-    'visible'
-  );
-
-  pointerLock.unlock();
-}
-
-function exitToMainMenu() {
-
-  closeExitMenu();
-
-  playerDead =
-    false;
-
-  playerTrapped =
-    false;
-
-  gameStarted =
-    false;
-
-  multiplayerGame =
-    false;
-
-  aiRoundOver =
-    false;
-
-  clearLocalTrapBubble();
-
-  player.setTrapped(
-    false
-  );
-
-  player.model.visible =
-    false;
-
-  // Hide AI when returning
-  // to the main menu.
-  for (
-    const ai of
-    aiTadpoles
-  ) {
-
-    ai.model.visible =
-      false;
-  }
-
-  deathScreen.hide();
-
-  clearRemotePlayers();
-
-  multiplayer.leaveRoom();
-
-  mainMenu.show();
-}
-
-resumeButton?.addEventListener(
-  'click',
-  () => {
-
-    closeExitMenu();
-
-    // Resume is a user gesture,
-    // so pointer lock is allowed.
-    if (
-      gameStarted &&
-      !playerDead
-    ) {
-      pointerLock.lock();
-    }
-  }
-);
-
-exitToMenuButton?.addEventListener(
-  'click',
-  () => {
-
-    exitToMainMenu();
-  }
-);
-
-window.addEventListener(
-  'keydown',
-  (event) => {
-
-    if (
-      event.key !==
-      'Escape'
-    ) {
-      return;
-    }
-
-    event.preventDefault();
-
-    if (
-      exitMenuOpen
-    ) {
-
-      closeExitMenu();
-
-    } else {
-
-      openExitMenu();
-    }
-  }
-);
-
-// ==============================
-// PC ATTACK
-// ==============================
-
-window.addEventListener(
-  'mousedown',
-  (event) => {
-
-    if (
-      event.button !== 0
-    ) {
-      return;
-    }
-
-    if (
-      !gameStarted ||
-      playerDead ||
-      playerTrapped
-    ) {
-      return;
-    }
-
-    if (
-      player.getAttackCooldown() > 0
-    ) {
-      return;
-    }
-
-    player.startAttack();
-  }
-);
-
-// ==============================
-// MOBILE EXIT BUTTON
-// ==============================
-
-const mobileExit =
-  document.createElement(
-    'button'
-  );
-
-mobileExit.id =
-  'mobile-exit';
-
-mobileExit.textContent =
-  'EXIT';
-
-document.body.appendChild(
-  mobileExit
-);
-
-mobileExit.addEventListener(
-  'click',
-  () => {
-
-    if (
-      exitMenuOpen
-    ) {
-
-      closeExitMenu();
-
-    } else {
-
-      openExitMenu();
-    }
-  }
-);
-
-// ==============================
-// AUTO START
-// ==============================
-
-const shouldStartAI =
-  new URLSearchParams(
-    window.location.search
-  ).get('start') ===
-  'ai';
-
-if (
-  shouldStartAI
-) {
-
-  multiplayerGame =
-    false;
-
-  gameStarted =
-    true;
-
-  playerDead =
-    false;
-
-  playerTrapped =
-    false;
-
-  aiRoundOver =
-    false;
-
-  player.model.visible =
-    false;
-
-  // NOTE:
-  // URL auto-start cannot reliably
-  // trigger pointer lock because it
-  // is not a user gesture.
-}
-
-// ==============================
-// WORLD
-// ==============================
-
-const flashlightSystem =
-  createFlashlight(
-    scene
-  );
-
-const ocean =
-  createOcean(
-    scene
-  );
-
-const rockColliders =
-  createRocks(
-    scene
-  );
-
-createOceanVegetation(
-  scene
-);
 
 // ==============================
 // AI
 // ==============================
 
-const aiSpawnPositions = [
-
-  new THREE.Vector3(
-    15,
-    -5,
-    -15
-  ),
-
-  new THREE.Vector3(
-    -18,
-    -8,
-    -12
-  ),
-
-  new THREE.Vector3(
-    20,
-    -10,
-    18
-  ),
-
-  new THREE.Vector3(
-    -20,
-    -3,
-    20
-  ),
-
-  new THREE.Vector3(
-    5,
-    -12,
-    -25
-  ),
-];
-
-const aiTadpoles:
-  AITadpole[] = [];
-
-// ==============================
-// CREATE AI
-// ==============================
-
-for (
-  let i = 0;
-  i <
-  aiSpawnPositions.length;
-  i++
-) {
-
-  const ai =
-    new AITadpole(
-      scene,
-      camera,
-      rockColliders,
-
-      // PLAYER TRAPPED
-      (bubble) => {
-
-        // AI cannot trap the local
-        // player during multiplayer.
+const aiManager =
+  new AIManager(
+    scene,
+    camera,
+    worldManager.getRocks(),
+    {
+      onPlayerTrapped: (
+        bubble: THREE.Mesh
+      ) => {
         if (
-          multiplayerGame ||
-          playerTrapped ||
-          playerDead
+          gameState.multiplayer ||
+          gameState.playerTrapped ||
+          gameState.playerDead
         ) {
           return;
         }
 
-        playerTrapped =
-          true;
+        gameFlow.setTrapped(
+          true
+        );
 
         player.setTrapped(
           true,
@@ -1721,162 +330,106 @@ for (
         );
       },
 
-      // PLAYER DIED
-      () => {
-
-        // AI cannot kill the local
-        // player during multiplayer.
+      onPlayerDied: () => {
         if (
-          multiplayerGame
+          gameState.multiplayer ||
+          gameState.playerDead
         ) {
           return;
         }
 
-        if (
-          playerDead
-        ) {
-          return;
-        }
-
-        playerDead =
-          true;
-
-        playerTrapped =
-          false;
-
-        pointerLock.unlock();
-
-        hud.setTrapped(
-          false,
-          null
-        );
-
-        hud.setAlive(
-          false
-        );
-
-        hud.setCrosshairVisible(
-          false
-        );
-
-        player.startDeathFloat(
-          () => {
-
-            deathScreen.show();
-          }
-        );
-      }
-    );
-
-  ai.model.position.copy(
-    aiSpawnPositions[i]
-  );
-
-  // AI starts hidden.
-  // VS AI explicitly enables it.
-  ai.model.visible =
-    false;
-
-  aiTadpoles.push(
-    ai
-  );
-}
-
-// ==============================
-// TARGETS
-// ==============================
-
-updateCombatTargets();
-
-// ==============================
-// CLOCK
-// ==============================
-
-const clock =
-  new THREE.Clock();
-
-// ==============================
-// ANIMATION
-// ==============================
-
-function animate() {
-
-  requestAnimationFrame(
-    animate
-  );
-
-  const delta =
-    Math.min(
-      clock.getDelta(),
-      0.05
-    );
-
-  // ============================
-  // MAIN MENU
-  // ============================
-
-  if (
-    !gameStarted
-  ) {
-
-    mainMenu.update(
-      performance.now()
-    );
-
-    renderer.render(
-      scene,
-      camera
-    );
-
-    return;
-  }
-
-  // ============================
-  // AI
-  // ============================
-
-  // AI ONLY runs in VS AI.
-  // It does NOT run in multiplayer.
-  if (
-    !multiplayerGame &&
-    !aiRoundOver
-  ) {
-
-    for (
-      const ai of
-      aiTadpoles
-    ) {
-
-      ai.update(
-        delta,
-        scene
-      );
+        gameFlow.playerDied();
+      },
     }
-  }
+  );
 
-  // ============================
-  // VS AI VICTORY
-  // ============================
+// ==============================
+// GAME FLOW
+// ==============================
 
-  if (
-    !multiplayerGame &&
-    !playerDead &&
-    !aiRoundOver
-  ) {
+const gameFlow =
+  new GameFlow({
 
-    const livingAIs =
-      aiTadpoles.filter(
-        (ai) =>
-          ai.isAlive()
-      ).length;
+    onStartAI: () => {
+      clearCurrentLocalTrap();
 
-    if (
-      livingAIs === 0
-    ) {
+      multiplayerGame.stop();
 
-      aiRoundOver =
-        true;
+      remotePlayerManager.clear();
 
+      aiManager.create();
+
+      player.model.visible =
+        false;
+
+      hud.setAlive(
+        true
+      );
+
+      hud.setTrapped(
+        false,
+        null
+      );
+
+      hud.setCrosshairVisible(
+        true
+      );
+
+      hud.setPlayersAlive(
+        aiManager.getAliveCount() + 1
+      );
+
+      combatController.updateCombatTargets();
+
+      pointerLock.lock();
+    },
+
+    onCreateRoom: () => {
+      multiplayerController.createRoom();
+    },
+
+    onJoinRoom: (
+      roomCode
+    ) => {
+      multiplayerController.joinRoom(
+        roomCode
+      );
+    },
+
+    onStartMultiplayer: () => {
+      multiplayerController.startGame();
+    },
+
+    onPlayerDeath: () => {
+      if (
+        gameState.multiplayer
+      ) {
+        return;
+      }
+
+      pointerLock.unlock();
+
+      hud.setTrapped(
+        false,
+        null
+      );
+
+      hud.setAlive(
+        false
+      );
+
+      hud.setCrosshairVisible(
+        false
+      );
+
+      player.startDeathFloat(
+        () => {
+          deathScreen.show();
+        }
+      );
+    },
+
+    onVictory: () => {
       pointerLock.unlock();
 
       hud.setCrosshairVisible(
@@ -1887,418 +440,451 @@ function animate() {
         'victory',
         true
       );
-    }
-  }
+    },
 
-  // ============================
-  // REMOTE PLAYERS
-  // ============================
+    onPlayAgain: () => {
+      if (
+        gameState.multiplayer
+      ) {
+        multiplayer.playAgain();
 
-  for (
-    const remote of
-    remotePlayers.values()
-  ) {
+        return;
+      }
 
-    remote.update(
-      delta
-    );
-  }
+      clearCurrentLocalTrap();
 
-  // ============================
-  // LOCAL TRAP BUBBLE
-  // ============================
+      player.setTrapped(
+        false
+      );
 
-  if (
-    multiplayerGame &&
-    playerTrapped &&
-    localTrapBubble &&
-    localTrapStartedAt !== null &&
-    localTrapEndAt !== null
-  ) {
+      player.model.visible =
+        false;
 
-    const progress =
-      THREE.MathUtils.clamp(
-        (
-          Date.now() -
-          localTrapStartedAt
-        ) /
-        Math.max(
-          1,
-          localTrapEndAt -
-          localTrapStartedAt
-        ),
+      player.camera.position.set(
         0,
-        1
+        0,
+        10
       );
 
-    localTrapBubble.position.x =
-      player.position.x;
-
-    localTrapBubble.position.z =
-      player.position.z;
-
-    localTrapBubble.position.y =
-      THREE.MathUtils.lerp(
-        localTrapStartY,
-        30,
-        progress
+      player.camera.rotation.set(
+        0,
+        0,
+        0
       );
-  }
 
-  // ============================
-  // PLAYER
-  // ============================
+      player.camera.rotation.order =
+        'YXZ';
 
-  player.update(
-    delta
-  );
+      worldManager.reset();
 
-  player.updateCombat(
-    delta,
-    scene
-  );
+      aiManager.create();
 
-  // ============================
-  // SEND MULTIPLAYER STATE
-  // ============================
+      hud.setAlive(
+        true
+      );
 
-  if (
-    multiplayerGame
-  ) {
+      hud.setTrapped(
+        false,
+        null
+      );
 
-    multiplayerSendTimer +=
-      delta;
-
-    if (
-      multiplayerSendTimer >=
-      0.05
-    ) {
-
-      multiplayerSendTimer =
-        0;
-
-      sendMultiplayerPlayerState();
-    }
-  }
-
-  // ============================
-  // COLLISIONS
-  // ============================
-
-  updateRockCollisions(
-    player.camera,
-    rockColliders
-  );
-
-  updateBoundaries(
-    player.camera
-  );
-
-  // ============================
-  // PLAYERS ALIVE
-  // ============================
-
-  if (
-    multiplayerGame
-  ) {
-
-    const state =
-      multiplayer.getGameState();
-
-    if (
-      state
-    ) {
+      hud.setCrosshairVisible(
+        true
+      );
 
       hud.setPlayersAlive(
-        state.players.filter(
-          (networkPlayer) =>
-            networkPlayer.alive
-        ).length
+        aiManager.getAliveCount() + 1
       );
+
+      combatController.updateCombatTargets();
+
+      pointerLock.lock();
+    },
+
+    onReturnToMenu: () => {
+      pointerLock.unlock();
+
+      clearCurrentLocalTrap();
+
+      player.setTrapped(
+        false
+      );
+
+      player.model.visible =
+        false;
+
+      aiManager.clear();
+
+      remotePlayerManager.clear();
+
+      deathScreen.hide();
+
+      pauseMenu.hide();
+
+      if (
+        multiplayer.getRoomCode()
+      ) {
+        multiplayer.leaveRoom();
+      }
+
+      multiplayerGame.stop();
+
+      mainMenu.show();
+    },
+
+    onLeaveRoom: () => {
+      pointerLock.unlock();
+
+      clearCurrentLocalTrap();
+
+      player.setTrapped(
+        false
+      );
+
+      player.model.visible =
+        false;
+
+      aiManager.clear();
+
+      remotePlayerManager.clear();
+
+      deathScreen.hide();
+
+      pauseMenu.hide();
+
+      multiplayerGame.stop();
+
+      multiplayer.leaveRoom();
+    },
+
+    onResume: () => {
+      pointerLock.lock();
+    },
+  });
+
+// ==============================
+// MAIN MENU
+// ==============================
+
+mainMenu =
+  new MainMenu(
+    player.model,
+
+    () => {
+      gameFlow.startAI();
+    },
+
+    () => {
+      gameFlow.createRoom();
+    },
+
+    (roomCode) => {
+      gameFlow.joinRoom(
+        roomCode
+      );
+    },
+
+    () => {
+      gameFlow.leaveRoom();
+    },
+
+    () => {
+      gameFlow.startMultiplayer();
     }
-
-  } else {
-
-    const aliveAITadpoles =
-      aiTadpoles.filter(
-        (ai) =>
-          ai.isAlive()
-      ).length;
-
-    hud.setPlayersAlive(
-      aliveAITadpoles +
-      (
-        playerDead
-          ? 0
-          : 1
-      )
-    );
-  }
-
-  // ============================
-  // DEPTH
-  // ============================
-
-  hud.updateDepth(
-    player.camera
   );
 
-  // ============================
-  // TRAPPED
-  // ============================
+// ==============================
+// GAME OVER SCREEN
+// ==============================
 
-  let activeBubble:
-    THREE.Mesh | null =
-    null;
+deathScreen =
+  createDeathScreen(
 
-  if (
-    playerTrapped &&
-    !playerDead
-  ) {
+    () => {
+      pointerLock.unlock();
 
-    if (
-      multiplayerGame
-    ) {
+      gameState.playerDead =
+        true;
 
-      activeBubble =
-        localTrapBubble;
+      gameState.playerTrapped =
+        false;
 
-    } else {
+      clearCurrentLocalTrap();
 
-      for (
-        const ai of
-        aiTadpoles
+      hud.setTrapped(
+        false,
+        null
+      );
+
+      hud.setAlive(
+        false
+      );
+
+      hud.setCrosshairVisible(
+        false
+      );
+
+      player.model.visible =
+        false;
+    },
+
+    () => {
+      gameFlow.returnToMenu();
+    },
+
+    () => {
+      gameFlow.playAgain();
+    }
+  );
+
+// ==============================
+// PAUSE MENU
+// ==============================
+
+pauseMenu =
+  createPauseMenu({
+    onResume: () => {
+      if (
+        !gameState.started ||
+        gameState.playerDead ||
+        gameState.aiRoundOver
       ) {
+        return;
+      }
 
+      gameFlow.resume();
+    },
+
+    onExit: () => {
+      gameFlow.returnToMenu();
+    },
+  });
+
+// ==============================
+// PLAYER CONTROLLER
+// ==============================
+
+const playerController =
+  createPlayerController({
+    player,
+    gameFlow,
+    hud,
+    getLocalTrapBubble: () =>
+      localTrapBubble,
+    setLocalTrapBubble: (
+      bubble
+    ) => {
+      localTrapBubble =
+        bubble;
+    },
+  });
+
+// ==============================
+// INPUT
+// ==============================
+
+createInputManager(
+  player,
+  gameFlow,
+  pauseMenu
+);
+
+// ==============================
+// COMBAT CONTROLLER
+// ==============================
+
+const combatController =
+  createCombatController({
+    scene,
+    player,
+    aiManager,
+    remotePlayerManager,
+    multiplayer,
+    getLocalTrapBubble: () =>
+      localTrapBubble,
+  });
+
+// ==============================
+// HUD CONTROLLER
+// ==============================
+
+const hudController =
+  createHudController({
+    hud,
+    player,
+    aiManager,
+    multiplayer,
+    getLocalTrapBubble: () =>
+      localTrapBubble,
+  });
+
+// ==============================
+// WORLD CONTROLLER
+// ==============================
+
+const gameWorldController =
+  createGameWorldController({
+    scene,
+    player,
+    worldManager,
+    flashlight:
+      flashlightSystem.flashlight,
+    flashlightTarget:
+      flashlightSystem.target,
+  });
+
+// ==============================
+// MULTIPLAYER CONTROLLER
+// ==============================
+
+multiplayerController =
+  createMultiplayerController({
+    scene,
+    multiplayer,
+    multiplayerGame,
+    remotePlayerManager,
+    playerController,
+    mainMenu,
+    hud,
+    deathScreen,
+    pointerLock,
+    aiManager,
+    getLocalTrapBubble: () =>
+      localTrapBubble,
+    setLocalTrapBubble: (
+      bubble
+    ) => {
+      localTrapBubble =
+        bubble;
+    },
+    updateCombatTargets:
+      combatController.updateCombatTargets,
+  });
+
+// ==============================
+// INITIAL AI
+// ==============================
+
+aiManager.create();
+
+// ==============================
+// AUTO START
+// ==============================
+
+const shouldStartAI =
+  new URLSearchParams(
+    window.location.search
+  ).get('start') ===
+  'ai';
+
+if (
+  shouldStartAI
+) {
+  gameFlow.startAI();
+
+  combatController.updateCombatTargets();
+}
+
+// ==============================
+// GAME LOOP
+// ==============================
+
+const gameLoop =
+  new GameLoop({
+
+    update: (
+      delta,
+      now
+    ) => {
+
+      // ========================
+      // MULTIPLAYER NETWORK
+      // ========================
+
+      multiplayerController.update();
+
+      // ========================
+      // MAIN MENU
+      // ========================
+
+      if (
+        !gameState.started
+      ) {
+        mainMenu.update(
+          now
+        );
+
+        return;
+      }
+
+      // ========================
+      // AI
+      // ========================
+
+      if (
+        !gameState.multiplayer &&
+        !gameState.aiRoundOver
+      ) {
+        aiManager.update(
+          delta
+        );
+      }
+
+      // ========================
+      // VS AI VICTORY
+      // ========================
+
+      if (
+        !gameState.multiplayer &&
+        !gameState.playerDead &&
+        !gameState.aiRoundOver
+      ) {
         if (
-          ai.bubble
+          aiManager.getAliveCount() ===
+          0
         ) {
-
-          activeBubble =
-            ai.bubble;
-
-          break;
+          gameFlow.victory();
         }
       }
-    }
-  }
 
-  hud.updateTrapped(
-    activeBubble
-  );
+      // ========================
+      // REMOTE PLAYERS
+      // ========================
 
-  // ============================
-  // ATTACK HUD
-  // ============================
-
-  const attackCooldown =
-    player.getAttackCooldown();
-
-  const attackUsable =
-    !playerTrapped &&
-    !playerDead;
-
-  hud.updateAttack(
-    attackCooldown,
-    attackUsable
-  );
-
-  // ============================
-  // BOOST HUD
-  // ============================
-
-  const boostCooldown =
-    getBoostCooldown();
-
-  const boostUsable =
-    !playerTrapped &&
-    !playerDead;
-
-  hud.updateBoost(
-    boostCooldown,
-    boostUsable
-  );
-
-  // ============================
-  // MOBILE BOOST
-  // ============================
-
-  const mobileBoost =
-    document.getElementById(
-      'mobile-boost'
-    );
-
-  if (
-    mobileBoost
-  ) {
-
-    if (
-      !boostUsable
-    ) {
-
-      mobileBoost.textContent =
-        '( / )';
-
-      mobileBoost.classList.add(
-        'locked'
+      remotePlayerManager.updateMovement(
+        delta
       );
 
-    } else {
+      // ========================
+      // COMBAT
+      // ========================
 
-      mobileBoost.classList.remove(
-        'locked'
+      combatController.update(
+        delta
       );
 
-      if (
-        boostCooldown <= 0
-      ) {
+      // ========================
+      // WORLD
+      // ========================
 
-        mobileBoost.textContent =
-          'BOOST';
-
-      } else {
-
-        mobileBoost.textContent =
-          `BOOST ${boostCooldown.toFixed(1)}`;
-      }
-    }
-  }
-
-  // ============================
-  // MOBILE ATTACK
-  // ============================
-
-  if (
-    mobileAttack
-  ) {
-
-    if (
-      !attackUsable
-    ) {
-
-      mobileAttack.textContent =
-        '( / )';
-
-      mobileAttack.classList.add(
-        'locked'
+      gameWorldController.update(
+        delta
       );
 
-    } else {
+      // ========================
+      // HUD
+      // ========================
 
-      mobileAttack.classList.remove(
-        'locked'
+      hudController.update();
+    },
+
+    render: () => {
+      renderer.render(
+        scene,
+        player.camera
       );
-
-      if (
-        attackCooldown <= 0
-      ) {
-
-        mobileAttack.textContent =
-          'BURST';
-
-      } else {
-
-        mobileAttack.textContent =
-          `BURST ${attackCooldown.toFixed(1)}`;
-      }
-    }
-  }
-
-  // ============================
-  // WATER / SKY
-  // ============================
-
-  const aboveWater =
-    player.camera.position.y >
-    30;
-
-  ocean.sky.updateMoonVisibility(
-    player.camera.position.y
-  );
-
-  if (
-    aboveWater
-  ) {
-
-    scene.background =
-      aboveWaterColor;
-
-    scene.fog =
-      null;
-
-  } else {
-
-    scene.background =
-      underwaterColor;
-
-    scene.fog =
-      new THREE.FogExp2(
-        underwaterColor,
-        0.035
-      );
-  }
-
-  // ============================
-  // WATER SHADER
-  // ============================
-
-  const waterMaterial =
-    ocean.surface.material as
-      THREE.ShaderMaterial;
-
-  waterMaterial.uniforms
-    .uTime
-    .value +=
-    delta;
-
-  waterMaterial.uniforms
-    .uCameraPosition
-    .value.copy(
-      player.camera.position
-    );
-
-  waterMaterial.uniforms
-    .uUnderwater
-    .value =
-    aboveWater
-      ? 0
-      : 1;
-
-  // ============================
-  // FLASHLIGHT
-  // ============================
-
-  if (
-    !playerDead
-  ) {
-
-    updateFlashlight(
-      player.camera,
-      flashlightSystem.flashlight,
-      flashlightSystem.target
-    );
-  }
-
-  // ============================
-  // PARTICLES
-  // ============================
-
-  ocean.particles.rotation.y +=
-    delta * 0.03;
-
-  updateSeaweed(
-    performance.now()
-  );
-
-  // ============================
-  // RENDER
-  // ============================
-
-  renderer.render(
-    scene,
-    player.camera
-  );
-}
+    },
+  });
 
 // ==============================
 // RESIZE
@@ -2307,7 +893,6 @@ function animate() {
 window.addEventListener(
   'resize',
   () => {
-
     camera.aspect =
       window.innerWidth /
       window.innerHeight;
@@ -2327,4 +912,6 @@ window.addEventListener(
 // START
 // ==============================
 
-animate();
+combatController.updateCombatTargets();
+
+gameLoop.start();

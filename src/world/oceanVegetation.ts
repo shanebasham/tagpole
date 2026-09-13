@@ -1,422 +1,625 @@
 import * as THREE from 'three';
 
-// ==============================
-// SEAWEED STORAGE
-// ==============================
+// ============================================================
+// OCEAN VEGETATION
+// ============================================================
 
-let seaweedGroups: THREE.Group[] = [];
+// Root containing all vegetation so it can be removed cleanly
+// when the world is reset.
+let vegetationRoot:
+  THREE.Group | null = null;
 
-// ==============================
-// CORAL MATERIALS
-// ==============================
+// All seaweed groups that receive the animated sway.
+const seaweedGroups:
+  THREE.Group[] = [];
 
-const coralMaterials = [
-  new THREE.MeshStandardMaterial({
-    color: 0x8b4655,
-    roughness: 0.9,
-  }),
-  new THREE.MeshStandardMaterial({
-    color: 0x9a5545,
-    roughness: 0.9,
-  }),
-  new THREE.MeshStandardMaterial({
-    color: 0x694b72,
-    roughness: 0.9,
-  }),
-  new THREE.MeshStandardMaterial({
-    color: 0x3f7770,
-    roughness: 0.9,
-  }),
-];
+// ============================================================
+// SHARED MATERIALS
+// ============================================================
 
-// ==============================
-// SEAWEED MATERIAL
-// ==============================
+// These materials are shared between many vegetation meshes.
+// They intentionally are NOT disposed during world reset because
+// they remain valid module-level materials for the next world.
+const coralMaterial =
+  new THREE.MeshStandardMaterial({
+    color: 0x31545a,
+    roughness: 1,
+  });
+
+const coralDarkMaterial =
+  new THREE.MeshStandardMaterial({
+    color: 0x243f45,
+    roughness: 1,
+  });
 
 const seaweedMaterial =
   new THREE.MeshStandardMaterial({
-    color: 0x315c4a,
+    color: 0x214d4c,
     roughness: 1,
     side: THREE.DoubleSide,
   });
 
-// ==============================
+const kelpMaterial =
+  new THREE.MeshStandardMaterial({
+    color: 0x1d4645,
+    roughness: 1,
+    side: THREE.DoubleSide,
+  });
+
+// ============================================================
+// HELPERS
+// ============================================================
+
+function randomRange(
+  min: number,
+  max: number
+): number {
+  return THREE.MathUtils.randFloat(
+    min,
+    max
+  );
+}
+
+// ============================================================
 // CORAL
-// ==============================
+// ============================================================
 
 function createCoral(
-  x: number,
-  z: number
-) {
-  const coral = new THREE.Group();
+  parent: THREE.Object3D,
+  position: THREE.Vector3
+): void {
+  const coral =
+    new THREE.Group();
 
-  const material =
-    coralMaterials[
-      Math.floor(
-        Math.random() *
-        coralMaterials.length
-      )
-    ];
+  coral.position.copy(
+    position
+  );
+
+  coral.rotation.y =
+    Math.random() *
+    Math.PI *
+    2;
 
   const branchCount =
-    THREE.MathUtils.randInt(5, 10);
+    THREE.MathUtils.randInt(
+      3,
+      6
+    );
 
-  for (let i = 0; i < branchCount; i++) {
+  for (
+    let i = 0;
+    i < branchCount;
+    i++
+  ) {
     const height =
-      THREE.MathUtils.randFloat(
-        1.5,
-        12
+      randomRange(
+        0.5,
+        1.4
       );
 
-    const branch = new THREE.Mesh(
-      new THREE.CylinderGeometry(
-        0.1,
-        0.25,
-        height,
-        6
-      ),
-      material
-    );
+    const radius =
+      randomRange(
+        0.08,
+        0.18
+      );
 
-    branch.position.set(
-      THREE.MathUtils.randFloatSpread(1.5),
-      height / 2,
-      THREE.MathUtils.randFloatSpread(1.5)
-    );
+    const geometry =
+      new THREE.CylinderGeometry(
+        radius * 0.7,
+        radius,
+        height,
+        5
+      );
+
+    const material =
+      Math.random() > 0.35
+        ? coralMaterial
+        : coralDarkMaterial;
+
+    const branch =
+      new THREE.Mesh(
+        geometry,
+        material
+      );
+
+    const angle =
+      (
+        i /
+        branchCount
+      ) *
+      Math.PI *
+      2;
+
+    const distance =
+      randomRange(
+        0.05,
+        0.3
+      );
+
+    branch.position.x =
+      Math.cos(angle) *
+      distance;
+
+    branch.position.z =
+      Math.sin(angle) *
+      distance;
+
+    branch.position.y =
+      height *
+      0.5;
 
     branch.rotation.z =
-      THREE.MathUtils.randFloat(
+      randomRange(
         -0.35,
         0.35
       );
 
     branch.rotation.x =
-      THREE.MathUtils.randFloat(
+      randomRange(
         -0.35,
         0.35
       );
 
-    coral.add(branch);
+    coral.add(
+      branch
+    );
   }
 
-  coral.position.set(
-    x,
-    -15,
-    z
+  parent.add(
+    coral
   );
-
-  return coral;
 }
 
-// ==============================
-// SEAWEED
-// ==============================
+// ============================================================
+// SEAWEED BLADE
+// ============================================================
 
-function createSeaweed(
-  x: number,
-  z: number,
-  forest = false
-) {
-  const group = new THREE.Group();
-
-  const bladeCount =
-    forest
-      ? THREE.MathUtils.randInt(5, 10)
-      : THREE.MathUtils.randInt(5, 15);
-
-  for (let i = 0; i < bladeCount; i++) {
-    const height =
-      forest
-        ? THREE.MathUtils.randFloat(
-            3,
-            40
-          )
-        : THREE.MathUtils.randFloat(
-            1.5,
-            12
-          );
-
-    // ------------------------------
-    // BLADE GEOMETRY
-    // ------------------------------
-
-    const geometry =
-      new THREE.PlaneGeometry(
-        0.3,
-        height,
-        1,
-        8
-      );
-
-    // Keep the bottom anchored
-    // at Y = 0.
-    geometry.translate(
-      0,
-      height / 2,
-      0
+function createSeaweedBlade(
+  height: number,
+  width: number
+): THREE.Mesh {
+  const geometry =
+    new THREE.PlaneGeometry(
+      width,
+      height,
+      1,
+      6
     );
 
-    const blade = new THREE.Mesh(
+  // Move the geometry upward so the bottom remains anchored
+  // to the ocean floor.
+  const position =
+    geometry.attributes.position;
+
+  for (
+    let i = 0;
+    i < position.count;
+    i++
+  ) {
+    const y =
+      position.getY(i);
+
+    position.setY(
+      i,
+      y +
+        height *
+        0.5
+    );
+  }
+
+  geometry.computeVertexNormals();
+
+  const blade =
+    new THREE.Mesh(
       geometry,
       seaweedMaterial
     );
 
-    // ------------------------------
-    // BLADE POSITION
-    // ------------------------------
+  return blade;
+}
 
-    const angle =
-      (i / bladeCount) *
-        Math.PI *
-        2 +
-      THREE.MathUtils.randFloat(
-        -0.2,
-        0.2
-      );
+// ============================================================
+// SEAWEED PATCH
+// ============================================================
 
-    const radius =
-      forest
-        ? THREE.MathUtils.randFloat(
-            0.1,
-            0.55
-          )
-        : THREE.MathUtils.randFloat(
-            0.15,
-            0.6
-          );
+function createSeaweedPatch(
+  parent: THREE.Object3D,
+  position: THREE.Vector3
+): void {
+  const group =
+    new THREE.Group();
 
-    blade.position.set(
-      Math.cos(angle) * radius,
-      0,
-      Math.sin(angle) * radius
+  group.position.copy(
+    position
+  );
+
+  group.userData.swayOffset =
+    Math.random() *
+    Math.PI *
+    2;
+
+  group.userData.swaySpeed =
+    randomRange(
+      0.65,
+      1.05
     );
 
-    // ------------------------------
-    // BLADE DIRECTION
-    // ------------------------------
+  const bladeCount =
+    THREE.MathUtils.randInt(
+      2,
+      10
+    );
 
-    blade.rotation.y =
-      angle +
-      Math.PI / 2;
+  for (
+    let i = 0;
+    i < bladeCount;
+    i++
+  ) {
+    const height =
+      randomRange(
+        0.5,
+        8
+      );
 
-    // ------------------------------
-    // SWAY SETTINGS
-    // ------------------------------
+    const width =
+      randomRange(
+        0.2,
+        0.8
+      );
 
-    blade.userData.swayOffset =
+    const blade =
+      createSeaweedBlade(
+        height,
+        width
+      );
+
+    const angle =
       Math.random() *
       Math.PI *
       2;
 
+    const distance =
+      randomRange(
+        0,
+        0.35
+      );
+
+    blade.position.x =
+      Math.cos(angle) *
+      distance;
+
+    blade.position.z =
+      Math.sin(angle) *
+      distance;
+
+    blade.rotation.y =
+      angle;
+
+    blade.userData.baseRotationZ =
+      blade.rotation.z;
+
     blade.userData.swayAmount =
-      THREE.MathUtils.randFloat(
-        0.15,
-        0.3
+      randomRange(
+        0.08,
+        0.18
       );
 
-    blade.userData.swaySpeed =
-      THREE.MathUtils.randFloat(
-        0.8,
-        1.2
-      );
-
-    // Store height because
-    // BufferGeometry does not expose
-    // geometry.parameters in TypeScript.
     blade.userData.height =
       height;
 
-    group.add(blade);
+    group.add(
+      blade
+    );
   }
 
-  group.position.set(
-    x,
-    -15,
-    z
+  seaweedGroups.push(
+    group
   );
 
-  return group;
+  parent.add(
+    group
+  );
 }
 
-// ==============================
+// ============================================================
+// KELP BLADE
+// ============================================================
+
+function createKelpBlade(
+  height: number
+): THREE.Mesh {
+  const width =
+    randomRange(
+      0.18,
+      0.35
+    );
+
+  const geometry =
+    new THREE.PlaneGeometry(
+      width,
+      height,
+      1,
+      8
+    );
+
+  const position =
+    geometry.attributes.position;
+
+  for (
+    let i = 0;
+    i < position.count;
+    i++
+  ) {
+    const y =
+      position.getY(i);
+
+    position.setY(
+      i,
+      y +
+        height *
+        0.5
+    );
+  }
+
+  geometry.computeVertexNormals();
+
+  const blade =
+    new THREE.Mesh(
+      geometry,
+      kelpMaterial
+    );
+
+  return blade;
+}
+
+// ============================================================
+// KELP FOREST
+// ============================================================
+
+function createKelpForest(
+  parent: THREE.Object3D,
+  position: THREE.Vector3
+): void {
+  const group =
+    new THREE.Group();
+
+  group.position.copy(
+    position
+  );
+
+  group.userData.swayOffset =
+    Math.random() *
+    Math.PI *
+    2;
+
+  group.userData.swaySpeed =
+    randomRange(
+      0.35,
+      0.65
+    );
+
+  const stalkCount =
+    THREE.MathUtils.randInt(
+      2,
+      20
+    );
+
+  for (
+    let i = 0;
+    i < stalkCount;
+    i++
+  ) {
+    const height =
+      randomRange(
+        4,
+        40
+      );
+
+    const blade =
+      createKelpBlade(
+        height
+      );
+
+    const angle =
+      Math.random() *
+      Math.PI *
+      2;
+
+    const distance =
+      randomRange(
+        0,
+        1.2
+      );
+
+    blade.position.x =
+      Math.cos(angle) *
+      distance;
+
+    blade.position.z =
+      Math.sin(angle) *
+      distance;
+
+    blade.rotation.y =
+      angle;
+
+    blade.userData.swayAmount =
+      randomRange(
+        0.04,
+        0.1
+      );
+
+    blade.userData.height =
+      height;
+
+    group.add(
+      blade
+    );
+  }
+
+  seaweedGroups.push(
+    group
+  );
+
+  parent.add(
+    group
+  );
+}
+
+// ============================================================
 // CREATE VEGETATION
-// ==============================
+// ============================================================
 
 export function createOceanVegetation(
   scene: THREE.Scene
-) {
-  seaweedGroups = [];
+): void {
+  // If vegetation already exists, remove it first.
+  clearOceanVegetation();
 
-  // ------------------------------
+  vegetationRoot =
+    new THREE.Group();
+
+  vegetationRoot.name =
+    'OceanVegetation';
+
+  // ==========================================================
   // CORAL
-  // ------------------------------
+  // ==========================================================
 
-  for (let i = 0; i < 40; i++) {
-    const coral = createCoral(
-      THREE.MathUtils.randFloat(
-        -52,
-        52
-      ),
-      THREE.MathUtils.randFloat(
-        -52,
-        52
-      )
-    );
-
-    scene.add(coral);
-  }
-
-  // ------------------------------
-  // SCATTERED SEAWEED
-  // ------------------------------
-
-  for (let i = 0; i < 35; i++) {
-    const seaweed =
-      createSeaweed(
-        THREE.MathUtils.randFloat(
-          -53,
-          53
+  for (
+    let i = 0;
+    i < 45;
+    i++
+  ) {
+    const position =
+      new THREE.Vector3(
+        randomRange(
+          -54,
+          54
         ),
-        THREE.MathUtils.randFloat(
-          -53,
-          53
+        -15,
+        randomRange(
+          -54,
+          54
         )
       );
 
-    scene.add(seaweed);
-
-    seaweedGroups.push(
-      seaweed
+    createCoral(
+      vegetationRoot,
+      position
     );
   }
 
-  // ------------------------------
-  // KELP FORESTS
-  // ------------------------------
-
-  const forestCount = 8;
+  // ==========================================================
+  // SEAWEED
+  // ==========================================================
 
   for (
-    let forest = 0;
-    forest < forestCount;
-    forest++
+    let i = 0;
+    i < 90;
+    i++
   ) {
-    const centerX =
-      THREE.MathUtils.randFloat(
-        -48,
-        48
+    const position =
+      new THREE.Vector3(
+        randomRange(
+          -55,
+          55
+        ),
+        -15,
+        randomRange(
+          -55,
+          55
+        )
       );
 
-    const centerZ =
-      THREE.MathUtils.randFloat(
-        -48,
-        48
-      );
-
-    const forestRadius =
-      THREE.MathUtils.randFloat(
-        3,
-        8
-      );
-
-    const patchCount =
-      THREE.MathUtils.randInt(
-        8,
-        18
-      );
-
-    for (
-      let i = 0;
-      i < patchCount;
-      i++
-    ) {
-      const angle =
-        Math.random() *
-        Math.PI *
-        2;
-
-      const distance =
-        THREE.MathUtils.randFloat(
-          0,
-          forestRadius
-        );
-
-      const x =
-        centerX +
-        Math.cos(angle) *
-          distance;
-
-      const z =
-        centerZ +
-        Math.sin(angle) *
-          distance;
-
-      const seaweed =
-        createSeaweed(
-          x,
-          z,
-          true
-        );
-
-      scene.add(seaweed);
-
-      seaweedGroups.push(
-        seaweed
-      );
-    }
+    createSeaweedPatch(
+      vegetationRoot,
+      position
+    );
   }
+
+  // ==========================================================
+  // KELP FORESTS
+  // ==========================================================
+
+  for (
+    let i = 0;
+    i < 18;
+    i++
+  ) {
+    const position =
+      new THREE.Vector3(
+        randomRange(
+          -52,
+          52
+        ),
+        -15,
+        randomRange(
+          -52,
+          52
+        )
+      );
+
+    createKelpForest(
+      vegetationRoot,
+      position
+    );
+  }
+
+  scene.add(
+    vegetationRoot
+  );
 }
 
-// ==============================
-// UPDATE SEAWEED
-// ==============================
+// ============================================================
+// SEAWEED / KELP ANIMATION
+// ============================================================
 
 export function updateSeaweed(
   time: number
-) {
-  // Shared underwater current.
-  const current =
-    Math.sin(
-      time * 0.0015
-    ) * 0.12;
+): void {
+  for (
+    const group of seaweedGroups
+  ) {
+    const offset =
+      group.userData.swayOffset ??
+      0;
 
-  for (const group of seaweedGroups) {
-    for (const child of group.children) {
+    const speed =
+      group.userData.swaySpeed ??
+      0.8;
+
+    const groupSway =
+      Math.sin(
+        time *
+          0.001 *
+          speed +
+          offset
+      );
+
+    for (
+      const child of group.children
+    ) {
       const blade =
         child as THREE.Mesh;
 
-      const offset =
-        blade.userData.swayOffset;
+      const swayAmount =
+        blade.userData.swayAmount ??
+        0.1;
 
-      const amount =
-        blade.userData.swayAmount;
+      const height =
+        blade.userData.height ??
+        1;
 
-      const speed =
-        blade.userData.swaySpeed;
-
-      const bladeHeight =
-        blade.userData.height;
-
-      const sway =
-        (
-          Math.sin(
-            time *
-              0.0015 *
-              speed +
-              offset
-          ) *
-            amount +
-          current
-        );
-
-      const geometry =
-        blade.geometry;
+      if (
+        !blade.geometry
+      ) {
+        continue;
+      }
 
       const position =
-        geometry.attributes.position;
+        blade.geometry.attributes
+          .position;
 
-      // Move the blade forward and backward.
-      // The bottom remains anchored.
       for (
         let i = 0;
         i < position.count;
@@ -425,24 +628,73 @@ export function updateSeaweed(
         const y =
           position.getY(i);
 
-        const height =
+        const normalizedHeight =
           THREE.MathUtils.clamp(
-            y / bladeHeight,
+            y / height,
             0,
             1
           );
 
-        const originalZ =
-          0;
+        const sway =
+          groupSway *
+          swayAmount *
+          normalizedHeight;
+
+        position.setX(
+          i,
+          position.getX(i)
+        );
 
         position.setZ(
           i,
-          originalZ +
-            sway * height
+          Math.sin(
+            time *
+              0.001 *
+              speed +
+              offset +
+              normalizedHeight
+          ) *
+          sway
         );
       }
 
-      position.needsUpdate = true;
+      position.needsUpdate =
+        true;
     }
   }
+}
+
+// ============================================================
+// CLEAR VEGETATION
+// ============================================================
+
+export function clearOceanVegetation(): void {
+  if (
+    !vegetationRoot
+  ) {
+    seaweedGroups.length = 0;
+    return;
+  }
+
+  vegetationRoot.traverse(
+    (object) => {
+      const mesh =
+        object as THREE.Mesh;
+
+      if (
+        mesh.geometry
+      ) {
+        mesh.geometry.dispose();
+      }
+
+      // DO NOT dispose the shared vegetation materials here.
+      // They are reused when the next world is created.
+    }
+  );
+
+  vegetationRoot.removeFromParent();
+
+  vegetationRoot = null;
+
+  seaweedGroups.length = 0;
 }

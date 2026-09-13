@@ -28,6 +28,9 @@ export function createNightSky(
       skyMaterial
     );
 
+  sky.name =
+    'NightSky';
+
   sky.position.set(
     0,
     30,
@@ -48,7 +51,8 @@ export function createNightSky(
   // STARS
   // ==============================
 
-  const starCount = 1800;
+  const starCount =
+    1800;
 
   const positions =
     new Float32Array(
@@ -120,6 +124,9 @@ export function createNightSky(
       starMaterial
     );
 
+  stars.name =
+    'NightStars';
+
   stars.renderOrder = -50;
 
   scene.add(stars);
@@ -130,6 +137,9 @@ export function createNightSky(
 
   const moonGroup =
     new THREE.Group();
+
+  moonGroup.name =
+    'MoonGroup';
 
   // ==============================
   // FADING MOON HAZE
@@ -209,6 +219,9 @@ export function createNightSky(
       hazeMaterial
     );
 
+  haze.name =
+    'MoonHaze';
+
   haze.scale.set(
     125,
     125,
@@ -217,7 +230,9 @@ export function createNightSky(
 
   haze.renderOrder = 10;
 
-  moonGroup.add(haze);
+  moonGroup.add(
+    haze
+  );
 
   // ==============================
   // MOON
@@ -230,14 +245,14 @@ export function createNightSky(
       32
     );
 
-    const moonMaterial =
+  const moonMaterial =
     new THREE.MeshBasicMaterial({
-        color: 0xe8f7ff,
-        transparent: true,
-        opacity: 1,
-        depthWrite: false,
-        depthTest: false,
-        fog: false,
+      color: 0xe8f7ff,
+      transparent: true,
+      opacity: 1,
+      depthWrite: false,
+      depthTest: false,
+      fog: false,
     });
 
   const moon =
@@ -246,9 +261,14 @@ export function createNightSky(
       moonMaterial
     );
 
+  moon.name =
+    'Moon';
+
   moon.renderOrder = 20;
 
-  moonGroup.add(moon);
+  moonGroup.add(
+    moon
+  );
 
   // ==============================
   // RANDOM MOON POSITION
@@ -281,7 +301,9 @@ export function createNightSky(
       moonDistance
   );
 
-  scene.add(moonGroup);
+  scene.add(
+    moonGroup
+  );
 
   // ==============================
   // MOON VISIBILITY
@@ -290,28 +312,40 @@ export function createNightSky(
   function updateMoonVisibility(
     cameraY: number
   ) {
-    const SURFACE_Y = 30;
+    const SURFACE_Y =
+      30;
 
     const distanceBelowSurface =
-      SURFACE_Y - cameraY;
+      SURFACE_Y -
+      cameraY;
 
     // Above water:
     // completely visible.
     if (
-      cameraY >= SURFACE_Y
+      cameraY >=
+      SURFACE_Y
     ) {
-      moonMaterial.opacity = 1;
-      hazeMaterial.opacity = 1;
+      moonMaterial.opacity =
+        1;
+
+      hazeMaterial.opacity =
+        1;
+
       return;
     }
 
     // More than 10m underwater:
     // moon is completely gone.
     if (
-      distanceBelowSurface >= 10
+      distanceBelowSurface >=
+      10
     ) {
-      moonMaterial.opacity = 0;
-      hazeMaterial.opacity = 0;
+      moonMaterial.opacity =
+        0;
+
+      hazeMaterial.opacity =
+        0;
+
       return;
     }
 
@@ -327,10 +361,12 @@ export function createNightSky(
 
     // Keep it extremely faint underwater.
     moonMaterial.opacity =
-      visibility * 0.12;
+      visibility *
+      0.12;
 
     hazeMaterial.opacity =
-      visibility * 0.18;
+      visibility *
+      0.18;
   }
 
   return {

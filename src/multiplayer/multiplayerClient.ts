@@ -1,7 +1,7 @@
 import type {
   GameState,
   NetworkPlayer
-} from './gameState';
+} from '../game/gameState';
 
 export type MultiplayerStatus =
   | 'disconnected'

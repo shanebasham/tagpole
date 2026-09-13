@@ -31,6 +31,9 @@ function createOceanFloor(
       floorMaterial
     );
 
+  floor.name =
+    'OceanFloor';
+
   floor.rotation.x =
     -Math.PI / 2;
 
@@ -38,6 +41,8 @@ function createOceanFloor(
     -15;
 
   scene.add(floor);
+
+  return floor;
 }
 
 // ==============================
@@ -89,7 +94,6 @@ function createOceanSurface(
 
           vec3 pos = position;
 
-          // Gentle large-scale waves.
           pos.z +=
             sin(
               pos.x * 0.035 +
@@ -130,19 +134,11 @@ function createOceanSurface(
 
         void main() {
 
-          // ==============================
-          // DISTANCE FROM PLAYER
-          // ==============================
-
           float horizontalDistance =
             distance(
               uCameraPosition.xz,
               vWorldPosition.xz
             );
-
-          // ==============================
-          // MOVING WATER
-          // ==============================
 
           float wave1 =
             sin(
@@ -172,10 +168,6 @@ function createOceanSurface(
               wave3
             ) / 3.75;
 
-          // ==============================
-          // WATER COLOR
-          // ==============================
-
           vec3 waterColor =
             vec3(
               0.30,
@@ -187,16 +179,6 @@ function createOceanSurface(
             0.72 +
             movement * 0.08;
 
-          // ==============================
-          // UNDERWATER DISTANCE
-          // ==============================
-
-          // Close to the player:
-          // visible.
-          //
-          // Far away:
-          // gradually disappears.
-
           float underwaterFade =
             1.0 -
             smoothstep(
@@ -204,14 +186,6 @@ function createOceanSurface(
               95.0,
               horizontalDistance
             );
-
-          // ==============================
-          // ABOVE WATER
-          // ==============================
-
-          // When above water, keep the
-          // surface visible much farther
-          // toward the horizon.
 
           float aboveWaterFade =
             1.0 -
@@ -228,7 +202,6 @@ function createOceanSurface(
               1.0 - uUnderwater
             );
 
-          // Slightly stronger above water.
           alpha *=
             mix(
               0.48,
@@ -251,6 +224,9 @@ function createOceanSurface(
       surfaceMaterial
     );
 
+  surface.name =
+    'OceanSurface';
+
   surface.rotation.x =
     -Math.PI / 2;
 
@@ -272,7 +248,8 @@ function createOceanSurface(
 function createParticles(
   scene: THREE.Scene
 ) {
-  const particleCount = 1800;
+  const particleCount =
+    1800;
 
   const particlePositions =
     new Float32Array(
@@ -291,7 +268,6 @@ function createParticles(
         120
       );
 
-    // Never above the surface.
     particlePositions[
       i * 3 + 1
     ] =
@@ -333,6 +309,9 @@ function createParticles(
       particleMaterial
     );
 
+  particles.name =
+    'OceanParticles';
+
   scene.add(particles);
 
   return particles;
@@ -345,7 +324,8 @@ function createParticles(
 export function createOcean(
   scene: THREE.Scene
 ) {
-  createOceanFloor(scene);
+  const floor =
+    createOceanFloor(scene);
 
   const surface =
     createOceanSurface(scene);
@@ -357,8 +337,111 @@ export function createOcean(
     createParticles(scene);
 
   return {
+    floor,
     surface,
     particles,
     sky,
   };
+}
+
+// ==============================
+// DISPOSE OBJECT
+// ==============================
+
+function disposeObject(
+  object: THREE.Object3D
+): void {
+  object.removeFromParent();
+
+  object.traverse(
+    (child) => {
+      const mesh =
+        child as THREE.Mesh;
+
+      if (
+        mesh.geometry
+      ) {
+        mesh.geometry.dispose();
+      }
+
+      const material =
+        mesh.material;
+
+      if (Array.isArray(material)) {
+        material.forEach(
+          (item) => {
+            item.dispose();
+          }
+        );
+      } else if (material) {
+        material.dispose();
+      }
+    }
+  );
+}
+
+// ==============================
+// CLEAR OCEAN
+// ==============================
+
+export function clearOcean(
+  ocean:
+    ReturnType<typeof createOcean> |
+    null
+): void {
+  if (!ocean) {
+    return;
+  }
+
+  // ============================
+  // FLOOR
+  // ============================
+
+  disposeObject(
+    ocean.floor
+  );
+
+  // ============================
+  // SURFACE
+  // ============================
+
+  disposeObject(
+    ocean.surface
+  );
+
+  // ============================
+  // PARTICLES
+  // ============================
+
+  disposeObject(
+    ocean.particles
+  );
+
+  // ============================
+  // NIGHT SKY
+  // ============================
+
+  // createNightSky() returns an object,
+  // not a single THREE.Object3D.
+  //
+  // Remove each actual Three.js object
+  // individually.
+
+  if (ocean.sky) {
+    disposeObject(
+      ocean.sky.sky
+    );
+
+    disposeObject(
+      ocean.sky.stars
+    );
+
+    disposeObject(
+      ocean.sky.moonGroup
+    );
+
+    disposeObject(
+      ocean.sky.haze
+    );
+  }
 }

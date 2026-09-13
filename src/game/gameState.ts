@@ -50,3 +50,33 @@ export function createGameState(): GameState {
     hostId: '',
   };
 }
+
+export interface NetworkPlayer {
+  id: string;
+
+  x: number;
+  y: number;
+  z: number;
+
+  yaw: number;
+  pitch: number;
+
+  vx: number;
+  vy: number;
+  vz: number;
+
+  alive: boolean;
+  trapped: boolean;
+  isDrowned: boolean;
+
+  trappedAt: number | null;
+  trapEndAt: number | null;
+}
+
+export const gameState = {
+  started: false,
+  multiplayer: false,
+  playerTrapped: false,
+  playerDead: false,
+  aiRoundOver: false,
+};

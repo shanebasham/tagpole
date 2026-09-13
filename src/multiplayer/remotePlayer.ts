@@ -2,7 +2,7 @@ import * as THREE from 'three';
 
 import type {
   NetworkPlayer
-} from './gameState';
+} from '../game/gameState';
 
 import {
   createPlayerModel

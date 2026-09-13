@@ -10,42 +10,75 @@ export function createDeathScreen(
   onReturnToLobby: () => void,
   onPlayAgain: () => void
 ) {
-  const deathScreen = document.createElement('div');
+  const deathScreen =
+    document.createElement('div');
 
-  deathScreen.id = 'death-screen';
+  deathScreen.id =
+    'death-screen';
 
   deathScreen.innerHTML = `
-    <div id="death-title">YOU DIED</div>
-    <div id="death-subtitle">THE SURFACE CLAIMED YOU</div>
+    <div id="death-title">
+      YOU DIED
+    </div>
+
+    <div id="death-subtitle">
+      THE SURFACE CLAIMED YOU
+    </div>
 
     <div id="death-buttons">
-      <button id="spectate-button">SPECTATE</button>
-      <button id="play-again-button">PLAY AGAIN</button>
-      <button id="main-menu-button">RETURN TO LOBBY</button>
+
+      <button id="spectate-button">
+        SPECTATE
+      </button>
+
+      <button id="play-again-button">
+        PLAY AGAIN
+      </button>
+
+      <button id="main-menu-button">
+        RETURN TO LOBBY
+      </button>
+
     </div>
   `;
 
-  document.body.appendChild(deathScreen);
+  document.body.appendChild(
+    deathScreen
+  );
 
   const deathTitle =
-    document.getElementById('death-title');
+    document.getElementById(
+      'death-title'
+    );
 
   const deathSubtitle =
-    document.getElementById('death-subtitle');
+    document.getElementById(
+      'death-subtitle'
+    );
 
   const spectateButton =
-    document.getElementById('spectate-button');
+    document.getElementById(
+      'spectate-button'
+    );
 
   const playAgainButton =
-    document.getElementById('play-again-button');
+    document.getElementById(
+      'play-again-button'
+    );
 
   const mainMenuButton =
-    document.getElementById('main-menu-button');
+    document.getElementById(
+      'main-menu-button'
+    );
 
   spectateButton?.addEventListener(
     'click',
     () => {
-      deathScreen.classList.remove('visible');
+
+      deathScreen.classList.remove(
+        'visible'
+      );
+
       onSpectate();
     }
   );
@@ -53,7 +86,11 @@ export function createDeathScreen(
   playAgainButton?.addEventListener(
     'click',
     () => {
-      deathScreen.classList.remove('visible');
+
+      deathScreen.classList.remove(
+        'visible'
+      );
+
       onPlayAgain();
     }
   );
@@ -61,17 +98,30 @@ export function createDeathScreen(
   mainMenuButton?.addEventListener(
     'click',
     () => {
-      deathScreen.classList.remove('visible');
+
+      deathScreen.classList.remove(
+        'visible'
+      );
+
       onReturnToLobby();
     }
   );
 
   return {
+
     show(
       mode: DeathScreenMode = 'death',
       isHost = false
     ) {
-      if (mode === 'death') {
+
+      // ==========================
+      // DEATH
+      // ==========================
+
+      if (
+        mode === 'death'
+      ) {
+
         if (deathTitle) {
           deathTitle.textContent =
             'YOU DIED';
@@ -89,7 +139,10 @@ export function createDeathScreen(
 
         if (playAgainButton) {
           playAgainButton.style.display =
-            'none';
+            'block';
+
+          playAgainButton.textContent =
+            'PLAY AGAIN';
         }
 
         if (mainMenuButton) {
@@ -98,7 +151,14 @@ export function createDeathScreen(
         }
       }
 
-      else if (mode === 'victory') {
+      // ==========================
+      // VICTORY
+      // ==========================
+
+      else if (
+        mode === 'victory'
+      ) {
+
         if (deathTitle) {
           deathTitle.textContent =
             'YOU WIN';
@@ -128,7 +188,12 @@ export function createDeathScreen(
         }
       }
 
+      // ==========================
+      // MULTIPLAYER ROUND OVER
+      // ==========================
+
       else {
+
         if (deathTitle) {
           deathTitle.textContent =
             'ROUND OVER';
@@ -145,6 +210,7 @@ export function createDeathScreen(
         }
 
         if (playAgainButton) {
+
           playAgainButton.style.display =
             isHost
               ? 'block'
@@ -162,7 +228,9 @@ export function createDeathScreen(
         }
       }
 
-      deathScreen.classList.add('visible');
+      deathScreen.classList.add(
+        'visible'
+      );
 
       if (
         typeof document.exitPointerLock ===
@@ -173,13 +241,16 @@ export function createDeathScreen(
     },
 
     hide() {
+
       deathScreen.classList.remove(
         'visible'
       );
     },
 
     setWaitingForHost() {
+
       if (playAgainButton) {
+
         playAgainButton.style.display =
           'block';
 

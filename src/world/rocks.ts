@@ -6,6 +6,15 @@ export type RockCollider = {
   height: number;
 };
 
+type RockObject = {
+  mesh: THREE.Mesh;
+  collider: RockCollider;
+};
+
+// Keep track of the actual rock meshes so they can
+// be completely removed when the world resets.
+const rockObjects: RockObject[] = [];
+
 // ==============================
 // CREATE ROCK
 // ==============================
@@ -30,10 +39,13 @@ function createRock(
       roughness: 1,
     });
 
-  const rock = new THREE.Mesh(
-    rockGeometry,
-    rockMaterial
-  );
+  const rock =
+    new THREE.Mesh(
+      rockGeometry,
+      rockMaterial
+    );
+
+  rock.name = 'Rock';
 
   const scale =
     THREE.MathUtils.randFloat(
@@ -82,8 +94,9 @@ function createRock(
 
   scene.add(rock);
 
-  return {
-    position: rock.position.clone(),
+  const collider: RockCollider = {
+    position:
+      rock.position.clone(),
 
     radius:
       scale *
@@ -98,6 +111,13 @@ function createRock(
       height *
       1.5,
   };
+
+  rockObjects.push({
+    mesh: rock,
+    collider,
+  });
+
+  return collider;
 }
 
 // ==============================
@@ -107,13 +127,15 @@ function createRock(
 export function createRocks(
   scene: THREE.Scene
 ): RockCollider[] {
-  const rockColliders: RockCollider[] = [];
+  const rockColliders:
+    RockCollider[] = [];
 
   // ============================
   // RANDOM ROCK AREAS
   // ============================
 
-  const rockClusterCount = 15;
+  const rockClusterCount =
+    15;
 
   for (
     let cluster = 0;
@@ -132,8 +154,6 @@ export function createRocks(
         50
       );
 
-    // Some clusters are dense,
-    // some are more spread out.
     const clusterSize =
       THREE.MathUtils.randFloat(
         2,
@@ -213,4 +233,31 @@ export function createRocks(
   }
 
   return rockColliders;
+}
+
+// ==============================
+// CLEAR ROCKS
+// ==============================
+
+export function clearRocks(): void {
+  for (
+    const rock of rockObjects
+  ) {
+    rock.mesh.removeFromParent();
+
+    rock.mesh.geometry.dispose();
+
+    const material =
+      rock.mesh.material;
+
+    if (Array.isArray(material)) {
+      material.forEach((item) => {
+        item.dispose();
+      });
+    } else if (material) {
+      material.dispose();
+    }
+  }
+
+  rockObjects.length = 0;
 }

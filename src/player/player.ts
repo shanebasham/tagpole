@@ -34,7 +34,7 @@ import {
 
 import type {
   NetworkPlayer
-} from '../multiplayer/gameState';
+} from '../game/gameState';
 
 export class Player {
 
