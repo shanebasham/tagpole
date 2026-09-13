@@ -1,30 +1,31 @@
-export function createPointerLock(
-  element: HTMLElement
-) {
+export function createPointerLock(element: HTMLElement) {
+  const isMobile =
+    'ontouchstart' in window ||
+    navigator.maxTouchPoints > 0;
+
   return {
     lock() {
-      if (
-        document.pointerLockElement !==
-        element
-      ) {
+      if (isMobile) {
+        return;
+      }
+
+      if (document.pointerLockElement !== element) {
         element.requestPointerLock();
       }
     },
 
     unlock() {
-      if (
-        document.pointerLockElement ===
-        element
-      ) {
+      if (document.pointerLockElement === element) {
         document.exitPointerLock();
       }
     },
 
     isLocked() {
-      return (
-        document.pointerLockElement ===
-        element
-      );
+      if (isMobile) {
+        return true;
+      }
+
+      return document.pointerLockElement === element;
     },
   };
 }

@@ -11,15 +11,16 @@ export type MultiplayerStatus =
 export class MultiplayerClient {
 
   private socket:
-    WebSocket | null = null;
+    WebSocket | null =
+    null;
 
   private status:
     MultiplayerStatus =
-      'disconnected';
+    'disconnected';
 
   private gameState:
     GameState | null =
-      null;
+    null;
 
   private playerId:
     string | null =
@@ -30,11 +31,15 @@ export class MultiplayerClient {
     null;
 
   private onStateUpdate:
-    ((state: GameState) => void) | null =
+    ((
+      state: GameState
+    ) => void) | null =
     null;
 
   private onStatusChange:
-    ((status: MultiplayerStatus) => void) | null =
+    ((
+      status: MultiplayerStatus
+    ) => void) | null =
     null;
 
   connect(
@@ -159,6 +164,7 @@ export class MultiplayerClient {
   ) {
 
     this.send({
+
       type:
         'join-room',
 
@@ -174,6 +180,7 @@ export class MultiplayerClient {
   ) {
 
     this.send({
+
       type:
         'player-state',
 
@@ -191,6 +198,7 @@ export class MultiplayerClient {
     );
 
     this.send({
+
       type:
         'trap-player',
 
@@ -201,6 +209,7 @@ export class MultiplayerClient {
   startGame() {
 
     this.send({
+
       type:
         'start-game'
     });
@@ -209,6 +218,7 @@ export class MultiplayerClient {
   playAgain() {
 
     this.send({
+
       type:
         'play-again'
     });
@@ -217,6 +227,7 @@ export class MultiplayerClient {
   leaveRoom() {
 
     this.send({
+
       type:
         'leave-room'
     });
@@ -237,7 +248,8 @@ export class MultiplayerClient {
   setStatusListener(
     callback:
       (
-        status: MultiplayerStatus
+        status:
+          MultiplayerStatus
       ) => void
   ) {
 
@@ -389,7 +401,8 @@ export class MultiplayerClient {
   }
 
   private setStatus(
-    status: MultiplayerStatus
+    status:
+      MultiplayerStatus
   ) {
 
     this.status =

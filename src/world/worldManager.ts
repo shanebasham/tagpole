@@ -24,56 +24,103 @@ import {
   updateBoundaries
 } from './boundaries';
 
+import {
+  withWorldSeed,
+  createRandomWorldSeed,
+} from './worldRandom';
+
 export class WorldManager {
 
-  private scene: THREE.Scene;
+  private scene:
+    THREE.Scene;
 
-  // IMPORTANT:
-  // Keep the same array object so AIManager's reference
-  // remains valid when the world is recreated.
-  private rocks: RockCollider[] = [];
+  private rocks:
+    RockCollider[] = [];
 
   private ocean:
     ReturnType<typeof createOcean> |
     null = null;
 
+  private worldSeed:
+    number = 0;
+
   constructor(
     scene: THREE.Scene
   ) {
-    this.scene = scene;
+
+    this.scene =
+      scene;
   }
 
   // ==============================
   // CREATE WORLD
   // ==============================
 
-  create(): void {
+  create(
+    seed: number =
+      createRandomWorldSeed()
+  ): void {
+
+    this.worldSeed =
+      seed >>> 0;
+
     this.clear();
 
-    this.ocean =
-      createOcean(
-        this.scene
-      );
+    withWorldSeed(
+      this.worldSeed,
+      () => {
 
-    const newRocks =
-      createRocks(
-        this.scene
-      );
+        this.ocean =
+          createOcean(
+            this.scene
+          );
 
-    this.rocks.push(
-      ...newRocks
+        const newRocks =
+          createRocks(
+            this.scene
+          );
+
+        this.rocks.push(
+          ...newRocks
+        );
+
+        createOceanVegetation(
+          this.scene
+        );
+      }
     );
+  }
 
-    createOceanVegetation(
-      this.scene
+  // ==============================
+  // RESET WORLD
+  // ==============================
+
+  reset(
+    seed: number =
+      createRandomWorldSeed()
+  ): void {
+
+    this.create(
+      seed
     );
+  }
+
+  // ==============================
+  // GET SEED
+  // ==============================
+
+  getWorldSeed(): number {
+
+    return this.worldSeed;
   }
 
   // ==============================
   // GET ROCKS
   // ==============================
 
-  getRocks(): RockCollider[] {
+  getRocks():
+    RockCollider[] {
+
     return this.rocks;
   }
 
@@ -84,6 +131,7 @@ export class WorldManager {
   getOcean():
     ReturnType<typeof createOcean> |
     null {
+
     return this.ocean;
   }
 
@@ -92,8 +140,10 @@ export class WorldManager {
   // ==============================
 
   update(
-    camera: THREE.PerspectiveCamera
+    camera:
+      THREE.PerspectiveCamera
   ): void {
+
     updateBoundaries(
       camera
     );
@@ -104,29 +154,22 @@ export class WorldManager {
   }
 
   // ==============================
-  // RESET WORLD
-  // ==============================
-
-  reset(): void {
-    this.clear();
-
-    this.create();
-  }
-
-  // ==============================
   // CLEAR WORLD
   // ==============================
 
   clear(): void {
+
     clearOcean(
       this.ocean
     );
 
-    this.ocean = null;
+    this.ocean =
+      null;
 
     clearRocks();
 
-    this.rocks.length = 0;
+    this.rocks.length =
+      0;
 
     clearOceanVegetation();
   }
@@ -136,6 +179,7 @@ export class WorldManager {
   // ==============================
 
   destroy(): void {
+
     this.clear();
   }
 }

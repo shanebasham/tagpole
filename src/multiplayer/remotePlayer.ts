@@ -1,16 +1,10 @@
 import * as THREE from 'three';
 
-import type {
-  NetworkPlayer
-} from '../game/gameState';
+import type { NetworkPlayer } from '../game/gameState';
 
-import {
-  createPlayerModel
-} from '../player/playerModel';
+import { createPlayerModel } from '../player/playerModel';
 
-import type {
-  CombatTarget
-} from '../player/combat/bubbles';
+import type { CombatTarget } from '../player/combat/bubbles';
 
 export class RemotePlayer
   implements CombatTarget {
@@ -46,7 +40,6 @@ export class RemotePlayer
   private scene:
     THREE.Scene;
 
-  // Server-authoritative trap timing
   private trappedAt:
     number | null =
     null;
@@ -55,13 +48,16 @@ export class RemotePlayer
     number | null =
     null;
 
-  // IMPORTANT:
-  // This never changes while trapped.
   private trapStartPosition =
     new THREE.Vector3();
 
-  // True when THIS client fired
-  // the bubble that trapped this player.
+  /*
+   * True when THIS client fired
+   * the bubble that trapped this player.
+   *
+   * When true, Bubbles.ts owns the
+   * actual trapping bubble.
+   */
   private localTrapPending =
     false;
 
@@ -151,17 +147,20 @@ export class RemotePlayer
       this.trapped ||
       !this.model.visible
     ) {
-
       return false;
     }
 
-    // Tell server.
+    /*
+     * Tell the server.
+     *
+     * The Bubbles instance that called
+     * this method remains responsible for
+     * the actual trapping bubble.
+     */
     this.multiplayer.sendTrapPlayer(
       this.id
     );
 
-    // Mark immediately so another
-    // projectile cannot hit the same player.
     this.trapped =
       true;
 
@@ -173,15 +172,17 @@ export class RemotePlayer
 
   updateTrappedPosition(
     position: THREE.Vector3
-  ) {
+  ): void {
 
-    // While THIS client owns the bubble,
-    // Bubbles.ts controls the remote model.
+    /*
+     * Only the client that fired the
+     * trapping bubble updates this remote
+     * player's position from Bubbles.ts.
+     */
     if (
       !this.trapped ||
       !this.localTrapPending
     ) {
-
       return;
     }
 
@@ -193,17 +194,14 @@ export class RemotePlayer
       0.15;
   }
 
-  onBubbleReachedSurface() {
+  onBubbleReachedSurface(): void {
 
-    // Do NOT release the trap here.
-    //
-    // The server decides when the player
-    // actually drowns. This prevents the
-    // local bubble animation and network
-    // state from fighting each other.
-
-    this.localTrapPending =
-      true;
+    /*
+     * Do not release the player here.
+     *
+     * The server decides when the player
+     * actually drowns.
+     */
   }
 
   // ==============================
@@ -212,17 +210,17 @@ export class RemotePlayer
 
   updateFromNetwork(
     player: NetworkPlayer
-  ) {
+  ): void {
 
     const wasTrapped =
       this.trapped;
 
-    // IMPORTANT:
-    //
-    // While trapped, do NOT replace the
-    // trap's starting position with the
-    // player's continuously changing
-    // network position.
+    /*
+     * NORMAL MOVEMENT
+     *
+     * Do not overwrite the local
+     * trapping bubble's position.
+     */
     if (
       !this.trapped
     ) {
@@ -232,19 +230,6 @@ export class RemotePlayer
         player.y,
         player.z
       );
-
-    } else if (
-      !this.localTrapPending
-    ) {
-
-      // For remote observers, keep X/Z
-      // synchronized while allowing the
-      // vertical trap animation to control Y.
-      this.targetPosition.x =
-        player.x;
-
-      this.targetPosition.z =
-        player.z;
     }
 
     this.targetRotation.set(
@@ -289,18 +274,25 @@ export class RemotePlayer
       this.trapEndAt =
         player.trapEndAt;
 
-      // THIS is the critical fix.
-      //
-      // Store the position ONCE.
+      /*
+       * Save the position exactly once.
+       */
       this.trapStartPosition.set(
         player.x,
         player.y,
         player.z
       );
 
-      // If this was not the player who
-      // fired the bubble, create our own
-      // synchronized visual bubble.
+      /*
+       * IMPORTANT:
+       *
+       * If THIS client fired the trap,
+       * Bubbles.ts already created and owns
+       * the trapping bubble.
+       *
+       * Otherwise this client needs its
+       * own synchronized visual bubble.
+       */
       if (
         !this.localTrapPending
       ) {
@@ -308,8 +300,6 @@ export class RemotePlayer
         this.createRemoteTrapBubble();
       }
 
-      // Make sure the model is visible
-      // while trapped.
       this.model.visible =
         true;
     }
@@ -323,10 +313,11 @@ export class RemotePlayer
       wasTrapped
     ) {
 
-      // Server may provide timestamps
-      // again, but the starting position
-      // must NEVER be reset.
-
+      /*
+       * Keep server timing synchronized.
+       *
+       * Never reset trapStartPosition.
+       */
       this.trappedAt =
         player.trappedAt;
 
@@ -382,21 +373,26 @@ export class RemotePlayer
 
       this.removeTrapBubble();
 
+      this.trappedAt =
+        null;
+
+      this.trapEndAt =
+        null;
+
       this.model.visible =
         false;
     }
   }
 
   // ==============================
-  // TRAP BUBBLE
+  // REMOTE VISUAL BUBBLE
   // ==============================
 
-  private createRemoteTrapBubble() {
+  private createRemoteTrapBubble(): void {
 
     if (
       this.trapBubble
     ) {
-
       return;
     }
 
@@ -432,12 +428,11 @@ export class RemotePlayer
     );
   }
 
-  private removeTrapBubble() {
+  private removeTrapBubble(): void {
 
     if (
       !this.trapBubble
     ) {
-
       return;
     }
 
@@ -473,20 +468,23 @@ export class RemotePlayer
 
   update(
     delta: number
-  ) {
+  ): void {
 
-    // The shooter client's actual
-    // Bubbles object controls this player.
+    /*
+     * ATTACKER CLIENT
+     *
+     * Bubbles.ts owns the bubble and
+     * directly moves this RemotePlayer.
+     */
     if (
       this.trapped &&
       this.localTrapPending
     ) {
-
       return;
     }
 
     // ==========================
-    // SYNCHRONIZED TRAP
+    // REMOTE OBSERVER
     // ==========================
 
     if (
@@ -522,14 +520,20 @@ export class RemotePlayer
           );
       }
 
-      // ALWAYS use the original
-      // trap position.
+      /*
+       * Keep X/Z fixed at the server's
+       * original trap position.
+       */
       this.trapBubble.position.x =
         this.trapStartPosition.x;
 
       this.trapBubble.position.z =
         this.trapStartPosition.z;
 
+      /*
+       * Use the exact same server
+       * timestamps as the victim.
+       */
       this.trapBubble.position.y =
         THREE.MathUtils.lerp(
           this.trapStartPosition.y,
@@ -575,7 +579,7 @@ export class RemotePlayer
   // REMOVE
   // ==============================
 
-  destroy() {
+  destroy(): void {
 
     this.removeTrapBubble();
 

@@ -1,28 +1,50 @@
 import http from 'http';
 import path from 'path';
 import fs from 'fs';
-import { WebSocketServer, WebSocket } from 'ws';
-import { randomUUID } from 'crypto';
 
-const PORT = Number(process.env.PORT) || 3001;
-const HOST = '0.0.0.0';
+import {
+  WebSocketServer,
+  WebSocket
+} from 'ws';
 
-const SURFACE_Y = 30;
-const BUBBLE_RISE_SPEED = 2;
-const BUBBLE_POP_HEIGHT = 2.5;
-const BUBBLE_CENTER_OFFSET = 1.5;
+import {
+  randomUUID
+} from 'crypto';
+
+const PORT =
+  Number(
+    process.env.PORT
+  ) || 3001;
+
+const HOST =
+  '0.0.0.0';
+
+const SURFACE_Y =
+  30;
+
+const BUBBLE_RISE_SPEED =
+  2;
+
+const BUBBLE_POP_HEIGHT =
+  2.5;
+
+const BUBBLE_CENTER_OFFSET =
+  1.5;
+
 const BUBBLE_POP_Y =
   SURFACE_Y +
   BUBBLE_POP_HEIGHT -
   BUBBLE_CENTER_OFFSET;
 
-const MAX_PLAYERS = 12;
+const MAX_PLAYERS =
+  12;
 
 // ========================================
 // TYPES
 // ========================================
 
 interface Player {
+
   id: string;
 
   x: number;
@@ -40,8 +62,11 @@ interface Player {
   trapped: boolean;
   isDrowned: boolean;
 
-  trappedAt: number | null;
-  trapEndAt: number | null;
+  trappedAt:
+    number | null;
+
+  trapEndAt:
+    number | null;
 
   trapStartX: number;
   trapStartY: number;
@@ -49,15 +74,22 @@ interface Player {
 }
 
 interface Room {
+
   code: string;
-  hostId: string;
+
+  hostId:
+    string;
 
   phase:
     | 'lobby'
     | 'playing'
     | 'ended';
 
-  players: Map<WebSocket, Player>;
+  worldSeed:
+    number;
+
+  players:
+    Map<WebSocket, Player>;
 }
 
 // ========================================
@@ -65,7 +97,10 @@ interface Room {
 // ========================================
 
 const rooms =
-  new Map<string, Room>();
+  new Map<
+    string,
+    Room
+  >();
 
 // ========================================
 // HTTP SERVER
@@ -73,7 +108,10 @@ const rooms =
 
 const server =
   http.createServer(
-    (request, response) => {
+    (
+      request,
+      response
+    ) => {
 
       const url =
         new URL(
@@ -109,7 +147,8 @@ const server =
       if (
         filePath !== distPath &&
         !filePath.startsWith(
-          distPath + path.sep
+          distPath +
+          path.sep
         )
       ) {
 
@@ -163,7 +202,10 @@ const server =
         );
 
       const contentTypes:
-        Record<string, string> = {
+        Record<
+          string,
+          string
+        > = {
 
         '.html':
           'text/html; charset=utf-8',
@@ -240,7 +282,8 @@ const server =
 
 const wss =
   new WebSocketServer({
-    noServer: true,
+    noServer:
+      true,
   });
 
 server.on(
@@ -252,7 +295,8 @@ server.on(
   ) => {
 
     if (
-      request.headers.upgrade?.toLowerCase() !==
+      request.headers.upgrade
+        ?.toLowerCase() !==
       'websocket'
     ) {
 
@@ -281,16 +325,19 @@ server.on(
 // ROOM CODE
 // ========================================
 
-function createRoomCode(): string {
+function createRoomCode():
+  string {
 
   const characters =
     'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
-  let code = '';
+  let code =
+    '';
 
   do {
 
-    code = '';
+    code =
+      '';
 
     for (
       let i = 0;
@@ -308,10 +355,27 @@ function createRoomCode(): string {
     }
 
   } while (
-    rooms.has(code)
+    rooms.has(
+      code
+    )
   );
 
   return code;
+}
+
+// ========================================
+// WORLD SEED
+// ========================================
+
+function createWorldSeed():
+  number {
+
+  return (
+    Math.floor(
+      Math.random() *
+      0x100000000
+    ) >>> 0
+  );
 }
 
 // ========================================
@@ -319,8 +383,10 @@ function createRoomCode(): string {
 // ========================================
 
 function send(
-  socket: WebSocket,
-  message: unknown
+  socket:
+    WebSocket,
+  message:
+    unknown
 ): void {
 
   if (
@@ -406,6 +472,9 @@ function broadcastRoomState(
 
     hostId:
       room.hostId,
+
+    worldSeed:
+      room.worldSeed,
   };
 
   for (
@@ -433,7 +502,8 @@ function resetPlayers(
   room: Room
 ): void {
 
-  let index = 0;
+  let index =
+    0;
 
   for (
     const player of
@@ -521,12 +591,9 @@ function checkRoundEnd(
     `[${room.code}] Round check: ${survivors.length} survivors`
   );
 
-  // ======================================
-  // ONE PLAYER LEFT
-  // ======================================
-
   if (
-    survivors.length === 1
+    survivors.length ===
+    1
   ) {
 
     const winner =
@@ -550,12 +617,9 @@ function checkRoundEnd(
     return;
   }
 
-  // ======================================
-  // ZERO PLAYERS LEFT
-  // ======================================
-
   if (
-    survivors.length === 0
+    survivors.length ===
+    0
   ) {
 
     room.phase =
@@ -625,14 +689,6 @@ function drownPlayer(
   target.trapEndAt =
     null;
 
-  // ======================================
-  // IMPORTANT
-  // ======================================
-  //
-  // Broadcast the death FIRST.
-  // Then immediately check whether
-  // this death ended the round.
-
   broadcastRoomState(
     room
   );
@@ -686,10 +742,6 @@ function trapPlayer(
     return;
   }
 
-  // ======================================
-  // SAVE HIT POSITION
-  // ======================================
-
   target.trapStartX =
     target.x;
 
@@ -698,10 +750,6 @@ function trapPlayer(
 
   target.trapStartZ =
     target.z;
-
-  // ======================================
-  // CALCULATE BUBBLE TIME
-  // ======================================
 
   const now =
     Date.now();
@@ -722,10 +770,6 @@ function trapPlayer(
       ) * 1000
     );
 
-  // ======================================
-  // TRAP
-  // ======================================
-
   target.trapped =
     true;
 
@@ -733,7 +777,8 @@ function trapPlayer(
     now;
 
   target.trapEndAt =
-    now + duration;
+    now +
+    duration;
 
   target.x =
     target.trapStartX;
@@ -765,10 +810,6 @@ function trapPlayer(
     room
   );
 
-  // ======================================
-  // SERVER-AUTHORITATIVE TIMER
-  // ======================================
-
   setTimeout(
     () => {
 
@@ -788,7 +829,8 @@ function trapPlayer(
       }
 
       if (
-        target.trapEndAt === null
+        target.trapEndAt ===
+        null
       ) {
 
         return;
@@ -817,7 +859,8 @@ function trapPlayer(
 function findSocketForPlayer(
   room: Room,
   playerId: string
-): WebSocket | null {
+):
+  WebSocket | null {
 
   for (
     const [
@@ -867,10 +910,6 @@ function removePlayer(
     `[${room.code}] PLAYER LEFT: ${leavingPlayer.id}`
   );
 
-  // ======================================
-  // EMPTY ROOM
-  // ======================================
-
   if (
     room.players.size ===
     0
@@ -886,10 +925,6 @@ function removePlayer(
 
     return;
   }
-
-  // ======================================
-  // HOST LEFT
-  // ======================================
 
   if (
     room.hostId ===
@@ -916,10 +951,6 @@ function removePlayer(
       `[${room.code}] NEW HOST: ${room.hostId}`
     );
   }
-
-  // ======================================
-  // CHECK IF LEAVING PLAYER ENDED ROUND
-  // ======================================
 
   if (
     room.phase ===
@@ -1094,6 +1125,9 @@ wss.on(
 
             phase:
               'lobby',
+
+            worldSeed:
+              0,
 
             players:
               new Map(),
@@ -1321,6 +1355,10 @@ wss.on(
             return;
           }
 
+          // NEW WORLD FOR EVERY START GAME
+          currentRoom.worldSeed =
+            createWorldSeed();
+
           resetPlayers(
             currentRoom
           );
@@ -1330,6 +1368,10 @@ wss.on(
 
           console.log(
             `[${currentRoom.code}] GAME STARTED`
+          );
+
+          console.log(
+            `[${currentRoom.code}] WORLD SEED: ${currentRoom.worldSeed}`
           );
 
           broadcastRoomState(
@@ -1381,6 +1423,11 @@ wss.on(
             return;
           }
 
+          // NEW WORLD SEED AS SOON AS
+          // PLAY AGAIN IS PRESSED
+          currentRoom.worldSeed =
+            createWorldSeed();
+
           resetPlayers(
             currentRoom
           );
@@ -1390,6 +1437,10 @@ wss.on(
 
           console.log(
             `[${currentRoom.code}] RETURNED TO LOBBY`
+          );
+
+          console.log(
+            `[${currentRoom.code}] NEW WORLD SEED: ${currentRoom.worldSeed}`
           );
 
           broadcastRoomState(
@@ -1438,8 +1489,6 @@ wss.on(
             return;
           }
 
-          // Server controls position
-          // while trapped.
           if (
             !storedPlayer.trapped
           ) {

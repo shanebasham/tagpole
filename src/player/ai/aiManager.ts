@@ -175,16 +175,13 @@ export class AIManager {
   }
 
   clear(): void {
-
-    for (
-      const ai of this.tadpoles
-    ) {
-
-      ai.model.removeFromParent();
+    for (const ai of this.tadpoles) {
+        ai.reset(this.scene);
+        ai.model.removeFromParent();
     }
 
     this.tadpoles.length = 0;
-  }
+    }
 
   destroy(): void {
 

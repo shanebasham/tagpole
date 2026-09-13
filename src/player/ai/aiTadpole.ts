@@ -124,7 +124,6 @@ export class AITadpole {
       ) => {
         // Player handles its own
         // trapped bubble position.
-
       },
 
       onBubbleReachedSurface:
@@ -291,6 +290,66 @@ export class AITadpole {
     return tadpole;
   }
 
+  /*
+   * Returns the actual world-space center
+   * of the ENTIRE rendered tadpole.
+   *
+   * This includes:
+   * - body
+   * - eyes
+   * - belly
+   * - entire tail
+   */
+  private getTadpoleCenter():
+    THREE.Vector3 {
+
+    this.model.updateWorldMatrix(
+      true,
+      true
+    );
+
+    const box =
+      new THREE.Box3();
+
+    box.setFromObject(
+      this.model
+    );
+
+    const center =
+      new THREE.Vector3();
+
+    box.getCenter(
+      center
+    );
+
+    return center;
+  }
+
+  /*
+   * Moves the tadpole so that the center
+   * of its COMPLETE bounding box is at
+   * the supplied world position.
+   */
+  private setTadpoleCenter(
+    position: THREE.Vector3
+  ): void {
+
+    const currentCenter =
+      this.getTadpoleCenter();
+
+    this.model.position.x +=
+      position.x -
+      currentCenter.x;
+
+    this.model.position.y +=
+      position.y -
+      currentCenter.y;
+
+    this.model.position.z +=
+      position.z -
+      currentCenter.z;
+  }
+
   update(
     delta: number,
     scene: THREE.Scene
@@ -375,7 +434,35 @@ export class AITadpole {
         this.model.visible =
           true;
 
-        this.model.position.copy(
+        /*
+         * AI bubbles are 35% larger
+         * than normal player bubbles.
+         */
+        bubble.scale.setScalar(
+          1.35
+        );
+
+        /*
+         * Find the center of the COMPLETE
+         * tadpole, including its tail.
+         */
+        const center =
+          this.getTadpoleCenter();
+
+        /*
+         * The bubble center is now
+         * EXACTLY the tadpole center.
+         */
+        bubble.position.copy(
+          center
+        );
+
+        /*
+         * Reposition the tadpole so its
+         * complete bounding-box center
+         * is exactly inside the bubble.
+         */
+        this.setTadpoleCenter(
           bubble.position
         );
 
@@ -395,7 +482,11 @@ export class AITadpole {
           return;
         }
 
-        this.model.position.copy(
+        /*
+         * Keep the COMPLETE tadpole centered
+         * inside the rising bubble.
+         */
+        this.setTadpoleCenter(
           position
         );
 
@@ -430,7 +521,32 @@ export class AITadpole {
     this.model.visible =
       true;
 
-    this.model.position.copy(
+    /*
+     * AI bubbles are 35% larger.
+     */
+    bubble.scale.setScalar(
+      1.35
+    );
+
+    /*
+     * Find the actual center of the
+     * whole tadpole.
+     */
+    const center =
+      this.getTadpoleCenter();
+
+    /*
+     * Put the bubble exactly there.
+     */
+    bubble.position.copy(
+      center
+    );
+
+    /*
+     * Put the entire tadpole exactly
+     * around the bubble center.
+     */
+    this.setTadpoleCenter(
       bubble.position
     );
 
@@ -450,7 +566,11 @@ export class AITadpole {
       return;
     }
 
-    this.model.position.copy(
+    /*
+     * Keep the actual geometric center
+     * of the tadpole at the bubble center.
+     */
+    this.setTadpoleCenter(
       position
     );
 

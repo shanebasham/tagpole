@@ -149,7 +149,7 @@ export class Player {
 
   update(
     delta: number
-  ) {
+  ): void {
 
     if (
       this.death.active
@@ -191,7 +191,7 @@ export class Player {
   updateCombat(
     delta: number,
     scene: THREE.Scene
-  ) {
+  ): void {
 
     this.bubbles.update(
       delta,
@@ -206,7 +206,7 @@ export class Player {
     );
   }
 
-  startAttack() {
+  startAttack(): boolean {
 
     if (
       this.death.active ||
@@ -233,14 +233,14 @@ export class Player {
 
   setCombatTargets(
     targets: CombatTarget[]
-  ) {
+  ): void {
 
     this.bubbles.setTargets(
       targets
     );
   }
 
-  getAttackCooldown() {
+  getAttackCooldown(): number {
 
     return this.attack.cooldownRemaining;
   }
@@ -249,9 +249,55 @@ export class Player {
   // TRAPPED
   // ==============================
 
-  private updateTrappedPlayer() {
+  private getPlayerCenter(): THREE.Vector3 {
 
-    const bubble =
+    this.model.updateWorldMatrix(
+      true,
+      true
+    );
+
+    const box: THREE.Box3 =
+      new THREE.Box3();
+
+    box.setFromObject(
+      this.model
+    );
+
+    const center: THREE.Vector3 =
+      new THREE.Vector3();
+
+    box.getCenter(
+      center
+    );
+
+    return center;
+  }
+
+  private setPlayerCenter(
+    position: THREE.Vector3
+  ): void {
+
+    const currentCenter:
+      THREE.Vector3 =
+      this.getPlayerCenter();
+
+    this.model.position.x +=
+      position.x -
+      currentCenter.x;
+
+    this.model.position.y +=
+      position.y -
+      currentCenter.y;
+
+    this.model.position.z +=
+      position.z -
+      currentCenter.z;
+  }
+
+  private updateTrappedPlayer(): void {
+
+    const bubble:
+      THREE.Mesh | null =
       this.cameraSystem.getTrappedBubble();
 
     if (
@@ -260,12 +306,9 @@ export class Player {
       return;
     }
 
-    this.model.position.copy(
+    this.setPlayerCenter(
       bubble.position
     );
-
-    this.model.position.y -=
-      0.15;
 
     this.model.rotation.set(
       0,
@@ -278,7 +321,7 @@ export class Player {
     trapped: boolean,
     bubble:
       THREE.Mesh | null = null
-  ) {
+  ): void {
 
     this.isFrozen =
       trapped;
@@ -309,7 +352,7 @@ export class Player {
 
   startDeathFloat(
     onReachedSurface: () => void
-  ) {
+  ): void {
 
     this.isFrozen =
       false;
@@ -330,7 +373,7 @@ export class Player {
   // POSITION
   // ==============================
 
-  get position() {
+  get position(): THREE.Vector3 {
 
     return this.camera.position;
   }

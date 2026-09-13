@@ -110,25 +110,43 @@ export class PlayerCamera {
 
   updateTrapped() {
     if (!this.trappedBubble) {
-      return;
+        return;
     }
 
-    const bubblePosition =
-      this.trappedBubble.position;
+    const target =
+        this.trappedBubble.position;
 
-    this.camera.position.set(
-      bubblePosition.x,
-      bubblePosition.y + 1.5,
-      bubblePosition.z +
-        this.trappedCameraDistance
+    const forward =
+        new THREE.Vector3(
+        0,
+        0,
+        -1
+        );
+
+    forward.applyEuler(
+        new THREE.Euler(
+        this.controls.pitch,
+        this.controls.yaw,
+        0,
+        'YXZ'
+        )
     );
 
-    this.camera.rotation.set(
-      this.controls.pitch,
-      this.controls.yaw,
-      0
+    forward.normalize();
+
+    this.camera.position.copy(
+        target
     );
-  }
+
+    this.camera.position.addScaledVector(
+        forward,
+        -this.trappedCameraDistance
+    );
+
+    this.camera.lookAt(
+        target
+    );
+    }
 
   // ==============================
   // DEATH CAMERA

@@ -1,13 +1,10 @@
-// ==============================
-// TAGPOLE GAME STATE
-// ==============================
-
 export type GamePhase =
   | 'lobby'
   | 'playing'
   | 'ended';
 
 export interface NetworkPlayer {
+
   id: string;
 
   x: number;
@@ -25,58 +22,67 @@ export interface NetworkPlayer {
   trapped: boolean;
   isDrowned: boolean;
 
-  trappedAt: number | null;
-  trapEndAt: number | null;
+  trappedAt:
+    number | null;
+
+  trapEndAt:
+    number | null;
 }
 
 export interface GameState {
-  phase: GamePhase;
 
-  players: NetworkPlayer[];
+  phase:
+    GamePhase;
 
-  maxPlayers: 12;
+  players:
+    NetworkPlayer[];
 
-  hostId: string;
+  maxPlayers:
+    12;
+
+  hostId:
+    string;
+
+  worldSeed:
+    number;
 }
 
-export function createGameState(): GameState {
+export function createGameState():
+  GameState {
+
   return {
-    phase: 'lobby',
 
-    players: [],
+    phase:
+      'lobby',
 
-    maxPlayers: 12,
+    players:
+      [],
 
-    hostId: '',
+    maxPlayers:
+      12,
+
+    hostId:
+      '',
+
+    worldSeed:
+      0,
   };
 }
 
-export interface NetworkPlayer {
-  id: string;
-
-  x: number;
-  y: number;
-  z: number;
-
-  yaw: number;
-  pitch: number;
-
-  vx: number;
-  vy: number;
-  vz: number;
-
-  alive: boolean;
-  trapped: boolean;
-  isDrowned: boolean;
-
-  trappedAt: number | null;
-  trapEndAt: number | null;
-}
-
 export const gameState = {
-  started: false,
-  multiplayer: false,
-  playerTrapped: false,
-  playerDead: false,
-  aiRoundOver: false,
+
+  started:
+    false,
+
+  multiplayer:
+    false,
+
+  playerTrapped:
+    false,
+
+  playerDead:
+    false,
+
+  aiRoundOver:
+    false,
 };

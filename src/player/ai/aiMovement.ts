@@ -13,7 +13,7 @@ export class AIMovement {
   private velocity =
     new THREE.Vector3();
 
-  private speed = 2.5;
+  private speed = 5;
 
   private avoidanceDistance = 3;
 
