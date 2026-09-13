@@ -361,7 +361,7 @@ export class MainMenu {
   // FRIENDS MENU
   // ==============================
 
-  private showFriendsMenu() {
+   showFriendsMenu() {
 
     this.lobbyStartButton =
       null;
@@ -725,20 +725,26 @@ export class MainMenu {
       ) as HTMLButtonElement | null;
 
     this.lobbyStartButton
-      ?.addEventListener(
+    ?.addEventListener(
         'click',
         () => {
 
-          if (
+        if (
             !this.lobbyStartButton ||
             this.lobbyStartButton.disabled
-          ) {
+        ) {
             return;
-          }
-
-          this.onStartGame();
         }
-      );
+
+        this.lobbyStartButton.disabled =
+            true;
+
+        this.lobbyStartButton.textContent =
+            'STARTING...';
+
+        this.onStartGame();
+        }
+    );
 
     document
       .getElementById(
@@ -747,10 +753,7 @@ export class MainMenu {
       ?.addEventListener(
         'click',
         () => {
-
           this.onLeaveRoom();
-
-          this.showFriendsMenu();
         }
       );
 

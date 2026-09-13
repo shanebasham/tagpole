@@ -554,7 +554,13 @@ const gameFlow =
 
       multiplayerGame.stop();
 
-      multiplayer.leaveRoom();
+      if (
+        multiplayer.getRoomCode()
+      ) {
+        multiplayer.leaveRoom();
+      }
+
+      mainMenu.showFriendsMenu();
     },
 
     onResume: () => {
