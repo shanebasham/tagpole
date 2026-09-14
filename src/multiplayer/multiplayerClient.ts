@@ -354,48 +354,41 @@ export class MultiplayerClient {
 
         break;
 
-      case 'game-state':
+        case 'game-state':
+          this.gameState = message.state;
 
-        this.gameState =
-          message.state;
+          if (this.gameState) {
 
-        if (
-          this.gameState
-        ) {
-
-          /*
-           * Primary state listener.
-           *
-           * Used by main.ts for
-           * world-seed synchronization.
-           */
-          if (
-            this.onStateUpdate
-          ) {
-
-            this.onStateUpdate(
-              this.gameState
+            console.log(
+              '[NETWORK GAME STATE]',
+              'client:',
+              this.playerId,
+              'phase:',
+              this.gameState.phase,
+              'players:',
+              this.gameState.players.length,
+              this.gameState.players.map(
+                player => player.id
+              )
             );
+
+            if (this.onStateUpdate) {
+              this.onStateUpdate(
+                this.gameState
+              );
+            }
+
+            for (
+              const listener of
+                this.stateListeners
+            ) {
+              listener(
+                this.gameState
+              );
+            }
           }
 
-          /*
-           * Additional state listeners.
-           *
-           * MultiplayerGame uses this
-           * for player/lobby/game updates.
-           */
-          for (
-            const listener
-            of this.stateListeners
-          ) {
-
-            listener(
-              this.gameState
-            );
-          }
-        }
-
-        break;
+          break;
 
       case 'error':
 

@@ -76,14 +76,8 @@ export class MultiplayerGame {
       multiplayer;
 
     /*
-     * IMPORTANT:
-     *
-     * Do NOT use setStateListener()
-     * here.
-     *
-     * main.ts also needs to receive
-     * game-state messages for world
-     * seed synchronization.
+     * Process each incoming server state
+     * exactly once.
      */
     this.multiplayer.addStateListener(
       (state) => {
@@ -123,24 +117,13 @@ export class MultiplayerGame {
 
   update(): void {
 
-    if (
-      !this.active
-    ) {
-      return;
-    }
-
-    const state =
-      this.multiplayer.getGameState();
-
-    if (
-      !state
-    ) {
-      return;
-    }
-
-    this.handleState(
-      state
-    );
+    /*
+     * State updates are handled by the
+     * WebSocket listener.
+     *
+     * Do not process the same state again
+     * every render frame.
+     */
   }
 
   private handleState(
@@ -171,7 +154,7 @@ export class MultiplayerGame {
 
     /*
      * Update our local player's
-     * multiplayer state.
+     * authoritative multiplayer state.
      */
     const localPlayer =
       state.players.find(

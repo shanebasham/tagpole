@@ -823,16 +823,6 @@ const gameLoop =
 
       multiplayerController.update();
 
-      if (
-        gameState.multiplayer &&
-        gameState.started
-      ) {
-
-        multiplayer.sendPlayerState(
-          player.getNetworkState()
-        );
-      }
-
       // ========================
       // MAIN MENU
       // ========================
@@ -900,6 +890,20 @@ const gameLoop =
       gameWorldController.update(
         delta
       );
+
+    // ========================
+    // SEND LOCAL PLAYER STATE
+    // ========================
+
+      if (
+        gameState.multiplayer &&
+        gameState.started
+      ) {
+
+        multiplayer.sendPlayerState(
+          player.getNetworkState()
+        );
+      }
 
       // ========================
       // HUD
