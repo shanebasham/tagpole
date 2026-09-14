@@ -15,28 +15,21 @@ type SmallBubble = {
   visualOnly: boolean;
 };
 
-type TrappingBubble = {
-  mesh: THREE.Mesh;
-  target: CombatTarget;
-};
-
 export class Bubbles {
 
   private readonly surfaceY = 30;
-
   private readonly bubbleRiseSpeed = 2.0;
-
   private readonly bubblePopHeight = 2.5;
-
   private readonly smallBubbleSpeed = 7.0;
-
   private readonly targetHitRadius = 0.45;
 
-  private readonly smallBubbles:
-    SmallBubble[] = [];
+  private readonly smallBubbles: SmallBubble[] = [];
 
   private readonly trappingBubbles:
-    TrappingBubble[] = [];
+    Array<{
+      mesh: THREE.Mesh;
+      target: CombatTarget;
+    }> = [];
 
   private readonly bubblePops:
     Array<{
@@ -45,35 +38,20 @@ export class Bubbles {
       duration: number;
     }> = [];
 
-  private targets:
-    CombatTarget[] = [];
+  private targets: CombatTarget[] = [];
 
   setTargets(
     targets: CombatTarget[]
   ): void {
 
-    this.targets =
-      targets;
+    this.targets = targets;
   }
-
-  /*
-   * Existing AI code uses this.bubbles.bubble.
-   *
-   * Return the most recently created trapping bubble.
-   */
-  get bubble():
-    THREE.Mesh | null {
-
-    if (
-      this.trappingBubbles.length === 0
-    ) {
-      return null;
-    }
-
-    return this.trappingBubbles[
-      this.trappingBubbles.length - 1
-    ].mesh;
-  }
+  
+  get bubble(): THREE.Mesh | null {
+  return this.trappingBubbles.length > 0
+    ? this.trappingBubbles[0].mesh
+    : null;
+}
 
   fire(
     scene: THREE.Scene,
@@ -147,9 +125,7 @@ export class Bubbles {
         this.smallBubbleSpeed
       );
 
-    scene.add(
-      mesh
-    );
+    scene.add(mesh);
 
     this.smallBubbles.push({
       mesh,
@@ -166,13 +142,6 @@ export class Bubbles {
     };
   }
 
-  /*
-   * Creates a projectile received from another
-   * multiplayer player.
-   *
-   * Remote bubbles are visual-only.
-   * They cannot trap anything locally.
-   */
   fireRemote(
     scene: THREE.Scene,
     position: THREE.Vector3,
@@ -212,18 +181,13 @@ export class Bubbles {
       position
     );
 
-    scene.add(
-      mesh
-    );
+    scene.add(mesh);
 
     this.smallBubbles.push({
       mesh,
-
       velocity:
         velocity.clone(),
-
-      visualOnly:
-        true,
+      visualOnly: true,
     });
   }
 
@@ -250,9 +214,7 @@ export class Bubbles {
 
     direction.normalize();
 
-    if (
-      aimPosition
-    ) {
+    if (aimPosition) {
 
       direction
         .subVectors(
@@ -268,9 +230,7 @@ export class Bubbles {
     spawnPosition.add(
       direction
         .clone()
-        .multiplyScalar(
-          0.35
-        )
+        .multiplyScalar(0.35)
     );
 
     return this.fire(
@@ -317,11 +277,8 @@ export class Bubbles {
     );
 
     this.trappingBubbles.push({
-      mesh:
-        bubble,
-
-      target:
-        target,
+      mesh: bubble,
+      target,
     });
 
     return bubble;
@@ -335,9 +292,7 @@ export class Bubbles {
     for (
       let i =
         this.smallBubbles.length - 1;
-
       i >= 0;
-
       i--
     ) {
 
@@ -349,12 +304,6 @@ export class Bubbles {
         delta
       );
 
-      /*
-       * Remote bubbles are only visual.
-       *
-       * Local bubbles continue to use the
-       * existing collision/trapping system.
-       */
       if (
         !bubble.visualOnly
       ) {
@@ -406,10 +355,6 @@ export class Bubbles {
               break;
             }
 
-            /*
-             * Target rejected the trap.
-             * Remove the temporary trapping bubble.
-             */
             trappingBubble.removeFromParent();
 
             trappingBubble.geometry.dispose();
@@ -418,7 +363,9 @@ export class Bubbles {
               trappingBubble.material;
 
             if (
-              Array.isArray(material)
+              Array.isArray(
+                material
+              )
             ) {
 
               material.forEach(
@@ -433,17 +380,11 @@ export class Bubbles {
           }
         }
 
-        if (
-          hit
-        ) {
+        if (hit) {
           continue;
         }
       }
 
-      /*
-       * Both local and remote projectiles
-       * disappear at the surface.
-       */
       if (
         bubble.mesh.position.y >=
         this.surfaceY
@@ -470,9 +411,7 @@ export class Bubbles {
     for (
       let i =
         this.trappingBubbles.length - 1;
-
       i >= 0;
-
       i--
     ) {
 
@@ -546,18 +485,12 @@ export class Bubbles {
       position
     );
 
-    scene.add(
-      mesh
-    );
+    scene.add(mesh);
 
     this.bubblePops.push({
       mesh,
-
-      time:
-        0,
-
-      duration:
-        0.25,
+      time: 0,
+      duration: 0.25,
     });
   }
 
@@ -568,9 +501,7 @@ export class Bubbles {
     const bubble =
       this.smallBubbles[index];
 
-    if (
-      !bubble
-    ) {
+    if (!bubble) {
       return;
     }
 
@@ -608,9 +539,7 @@ export class Bubbles {
     const bubble =
       this.trappingBubbles[index];
 
-    if (
-      !bubble
-    ) {
+    if (!bubble) {
       return;
     }
 
@@ -648,9 +577,7 @@ export class Bubbles {
     for (
       let i =
         this.bubblePops.length - 1;
-
       i >= 0;
-
       i--
     ) {
 
@@ -733,10 +660,6 @@ export class Bubbles {
     );
   }
 
-  /*
-   * The optional scene parameter preserves compatibility
-   * with AITadpole.ts, which calls clearProjectiles(scene).
-   */
   clearProjectiles(
     _scene?: THREE.Scene
   ): void {
@@ -772,10 +695,6 @@ export class Bubbles {
       0;
   }
 
-  /*
-   * The optional scene parameter preserves compatibility
-   * with AITadpole.ts, which calls reset(scene).
-   */
   reset(
     _scene?: THREE.Scene
   ): void {
@@ -785,9 +704,7 @@ export class Bubbles {
     for (
       let i =
         this.trappingBubbles.length - 1;
-
       i >= 0;
-
       i--
     ) {
 
@@ -799,9 +716,7 @@ export class Bubbles {
     for (
       let i =
         this.bubblePops.length - 1;
-
       i >= 0;
-
       i--
     ) {
 

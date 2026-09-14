@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 
 export function createPlayerModel() {
+
   const tadpole =
     new THREE.Group();
 
@@ -36,6 +37,51 @@ export function createPlayerModel() {
   tadpole.add(body);
 
   // ==============================
+  // EYES
+  // ==============================
+
+  const eyeGeometry =
+    new THREE.SphereGeometry(
+      0.14,
+      12,
+      8
+    );
+
+  const eyeMaterial =
+    new THREE.MeshStandardMaterial({
+      color: 0x050706,
+      roughness: 0.5,
+    });
+
+  const leftEye =
+    new THREE.Mesh(
+      eyeGeometry,
+      eyeMaterial
+    );
+
+  leftEye.position.set(
+    -0.24,
+    0.19,
+    -0.38
+  );
+
+  tadpole.add(leftEye);
+
+  const rightEye =
+    new THREE.Mesh(
+      eyeGeometry,
+      eyeMaterial
+    );
+
+  rightEye.position.set(
+    0.24,
+    0.19,
+    -0.38
+  );
+
+  tadpole.add(rightEye);
+
+  // ==============================
   // TAIL
   // ==============================
 
@@ -62,7 +108,8 @@ export function createPlayerModel() {
   tail.rotation.x =
     Math.PI / 2;
 
-  tail.position.z = 1;
+  tail.position.z =
+    1;
 
   tadpole.add(tail);
 

@@ -541,6 +541,9 @@ const tailGeometry =
 
           this.dead =
             true;
+          
+          this.model.visible =
+            false;
         },
     };
   }

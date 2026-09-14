@@ -45,13 +45,15 @@ export class Attack {
     boolean;
 
   private aimTarget:
-    (() => THREE.Vector3) | undefined;
+    (() => THREE.Vector3) |
+    undefined;
 
   private onBubbleFired:
     ((
       position: THREE.Vector3,
       velocity: THREE.Vector3
-    ) => void) | null;
+    ) => void) |
+    null;
 
   private attacking =
     false;
@@ -81,35 +83,46 @@ export class Attack {
       bubbles;
 
     this.attackRange =
-      options.attackRange ?? 12;
+      options.attackRange ??
+      12;
 
     this.facingThreshold =
-      options.facingThreshold ?? 0.95;
+      options.facingThreshold ??
+      0.95;
 
     this.cooldown =
-      options.cooldown ?? 3;
+      options.cooldown ??
+      3;
 
     this.duration =
-      options.duration ?? 1.2;
+      options.duration ??
+      1.2;
 
     this.bubbleInterval =
-      options.bubbleInterval ?? 0.12;
+      options.bubbleInterval ??
+      0.12;
 
     this.headShake =
-      options.headShake ?? false;
+      options.headShake ??
+      false;
 
     this.aimTarget =
       options.aimTarget;
 
     this.onBubbleFired =
-      options.onBubbleFired ?? null;
+      options.onBubbleFired ??
+      null;
   }
 
-  get isAttacking(): boolean {
+  get isAttacking():
+    boolean {
+
     return this.attacking;
   }
 
-  get cooldownRemaining(): number {
+  get cooldownRemaining():
+    number {
+
     return Math.max(
       0,
       this.cooldownTimer
@@ -121,19 +134,22 @@ export class Attack {
       ((
         position: THREE.Vector3,
         velocity: THREE.Vector3
-      ) => void) | null
+      ) => void) |
+      null
   ): void {
 
     this.onBubbleFired =
       listener;
   }
 
-  start(): boolean {
+  start():
+    boolean {
 
     if (
       this.attacking ||
       this.cooldownTimer > 0
     ) {
+
       return false;
     }
 
@@ -154,12 +170,14 @@ export class Attack {
 
   tryAttack(
     targetPosition: THREE.Vector3
-  ): boolean {
+  ):
+    boolean {
 
     if (
       this.attacking ||
       this.cooldownTimer > 0
     ) {
+
       return false;
     }
 
@@ -178,6 +196,7 @@ export class Attack {
       distance >
         this.attackRange
     ) {
+
       return false;
     }
 
@@ -210,6 +229,7 @@ export class Attack {
         facing <
         this.facingThreshold
       ) {
+
         return false;
       }
     }
@@ -238,6 +258,7 @@ export class Attack {
     if (
       !this.attacking
     ) {
+
       return;
     }
 
@@ -256,9 +277,7 @@ export class Attack {
           'aiHead'
         );
 
-      if (
-        head
-      ) {
+      if (head) {
 
         head.rotation.y =
           Math.sin(
@@ -333,7 +352,8 @@ export class Attack {
     }
   }
 
-  private stop(): void {
+  private stop():
+    void {
 
     this.attacking =
       false;
@@ -353,16 +373,15 @@ export class Attack {
           'aiHead'
         );
 
-      if (
-        head
-      ) {
+      if (head) {
         head.rotation.y =
           0;
       }
     }
   }
 
-  reset(): void {
+  reset():
+    void {
 
     this.attacking =
       false;
@@ -385,9 +404,7 @@ export class Attack {
           'aiHead'
         );
 
-      if (
-        head
-      ) {
+      if (head) {
         head.rotation.y =
           0;
       }

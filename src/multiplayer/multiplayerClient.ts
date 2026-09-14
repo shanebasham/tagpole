@@ -18,7 +18,7 @@ export class MultiplayerClient {
 
   private status:
     MultiplayerStatus =
-    'disconnected';
+      'disconnected';
 
   private gameState:
     GameState | null =
@@ -33,9 +33,8 @@ export class MultiplayerClient {
     null;
 
   private onStateUpdate:
-    ((
-      state: GameState
-    ) => void) | null =
+    ((state: GameState) => void) |
+    null =
     null;
 
   private stateListeners:
@@ -44,10 +43,8 @@ export class MultiplayerClient {
     > = [];
 
   private onStatusChange:
-    ((
-      status:
-        MultiplayerStatus
-    ) => void) | null =
+    ((status: MultiplayerStatus) => void) |
+    null =
     null;
 
   private bubbleFiredListeners:
@@ -70,6 +67,7 @@ export class MultiplayerClient {
           WebSocket.CONNECTING
       )
     ) {
+
       return;
     }
 
@@ -139,7 +137,8 @@ export class MultiplayerClient {
     );
   }
 
-  disconnect(): void {
+  disconnect():
+    void {
 
     if (
       this.socket
@@ -165,17 +164,19 @@ export class MultiplayerClient {
     );
   }
 
-  createRoom(): void {
+  createRoom():
+    void {
 
     this.send({
       type:
-        'create-room'
+        'create-room',
     });
   }
 
   joinRoom(
     roomCode: string
-  ): void {
+  ):
+    void {
 
     this.send({
       type:
@@ -184,13 +185,14 @@ export class MultiplayerClient {
       roomCode:
         roomCode
           .trim()
-          .toUpperCase()
+          .toUpperCase(),
     });
   }
 
   sendPlayerState(
     player: NetworkPlayer
-  ): void {
+  ):
+    void {
 
     if (
       !this.playerId
@@ -206,36 +208,42 @@ export class MultiplayerClient {
         ...player,
 
         id:
-          this.playerId
-      }
+          this.playerId,
+      },
     });
   }
 
   sendTrapPlayer(
     targetId: string
-  ): void {
-
-    console.log(
-      'Sending trap-player:',
-      targetId
-    );
+  ):
+    void {
 
     this.send({
       type:
         'trap-player',
 
-      targetId
+      targetId,
     });
   }
 
   sendBubbleFired(
     position: THREE.Vector3,
     velocity: THREE.Vector3
-  ): void {
+  ):
+    void {
 
     if (
       !this.playerId
     ) {
+      return;
+    }
+
+    if (
+      !this.socket ||
+      this.socket.readyState !==
+        WebSocket.OPEN
+    ) {
+
       return;
     }
 
@@ -263,41 +271,30 @@ export class MultiplayerClient {
     });
   }
 
-  addBubbleFiredListener(
-    listener:
-      (
-        shooterId: string,
-        position: THREE.Vector3,
-        velocity: THREE.Vector3
-      ) => void
-  ): void {
-
-    this.bubbleFiredListeners.push(
-      listener
-    );
-  }
-
-  startGame(): void {
+  startGame():
+    void {
 
     this.send({
       type:
-        'start-game'
+        'start-game',
     });
   }
 
-  playAgain(): void {
+  playAgain():
+    void {
 
     this.send({
       type:
-        'play-again'
+        'play-again',
     });
   }
 
-  leaveRoom(): void {
+  leaveRoom():
+    void {
 
     this.send({
       type:
-        'leave-room'
+        'leave-room',
     });
 
     this.roomCode =
@@ -307,7 +304,8 @@ export class MultiplayerClient {
   setStateListener(
     callback:
       (state: GameState) => void
-  ): void {
+  ):
+    void {
 
     this.onStateUpdate =
       callback;
@@ -316,7 +314,8 @@ export class MultiplayerClient {
   addStateListener(
     callback:
       (state: GameState) => void
-  ): void {
+  ):
+    void {
 
     this.stateListeners.push(
       callback
@@ -326,13 +325,28 @@ export class MultiplayerClient {
   setStatusListener(
     callback:
       (
-        status:
-          MultiplayerStatus
+        status: MultiplayerStatus
       ) => void
-  ): void {
+  ):
+    void {
 
     this.onStatusChange =
       callback;
+  }
+
+  addBubbleFiredListener(
+    callback:
+      (
+        shooterId: string,
+        position: THREE.Vector3,
+        velocity: THREE.Vector3
+      ) => void
+  ):
+    void {
+
+    this.bubbleFiredListeners.push(
+      callback
+    );
   }
 
   getStatus():
@@ -361,9 +375,11 @@ export class MultiplayerClient {
 
   private handleMessage(
     rawMessage: string
-  ): void {
+  ):
+    void {
 
-    let message: any;
+    let message:
+      any;
 
     try {
 
@@ -386,7 +402,7 @@ export class MultiplayerClient {
       message.type
     ) {
 
-      case 'connected':
+      case 'connected': {
 
         this.playerId =
           message.playerId;
@@ -397,8 +413,9 @@ export class MultiplayerClient {
         );
 
         break;
+      }
 
-      case 'room-created':
+      case 'room-created': {
 
         this.roomCode =
           message.roomCode;
@@ -409,8 +426,9 @@ export class MultiplayerClient {
         );
 
         break;
+      }
 
-      case 'room-joined':
+      case 'room-joined': {
 
         this.roomCode =
           message.roomCode;
@@ -421,26 +439,34 @@ export class MultiplayerClient {
         );
 
         break;
+      }
 
       case 'bubble-fired': {
 
-        const shooterId =
-          String(
-            message.shooterId
-          );
-
         const position =
           new THREE.Vector3(
-            Number(message.x),
-            Number(message.y),
-            Number(message.z)
+            Number(
+              message.x
+            ),
+            Number(
+              message.y
+            ),
+            Number(
+              message.z
+            )
           );
 
         const velocity =
           new THREE.Vector3(
-            Number(message.vx),
-            Number(message.vy),
-            Number(message.vz)
+            Number(
+              message.vx
+            ),
+            Number(
+              message.vy
+            ),
+            Number(
+              message.vz
+            )
           );
 
         if (
@@ -463,6 +489,7 @@ export class MultiplayerClient {
             velocity.z
           )
         ) {
+
           return;
         }
 
@@ -472,7 +499,7 @@ export class MultiplayerClient {
         ) {
 
           listener(
-            shooterId,
+            message.shooterId,
             position,
             velocity
           );
@@ -481,7 +508,7 @@ export class MultiplayerClient {
         break;
       }
 
-      case 'game-state':
+      case 'game-state': {
 
         this.gameState =
           message.state;
@@ -525,8 +552,9 @@ export class MultiplayerClient {
         }
 
         break;
+      }
 
-      case 'error':
+      case 'error': {
 
         console.error(
           'Multiplayer error:',
@@ -534,8 +562,9 @@ export class MultiplayerClient {
         );
 
         break;
+      }
 
-      default:
+      default: {
 
         console.warn(
           'Unknown multiplayer message:',
@@ -543,22 +572,20 @@ export class MultiplayerClient {
         );
 
         break;
+      }
     }
   }
 
   private send(
     message: unknown
-  ): void {
+  ):
+    void {
 
     if (
       !this.socket ||
       this.socket.readyState !==
         WebSocket.OPEN
     ) {
-
-      console.warn(
-        'Cannot send multiplayer message; socket is not connected.'
-      );
 
       return;
     }
@@ -571,9 +598,9 @@ export class MultiplayerClient {
   }
 
   private setStatus(
-    status:
-      MultiplayerStatus
-  ): void {
+    status: MultiplayerStatus
+  ):
+    void {
 
     this.status =
       status;

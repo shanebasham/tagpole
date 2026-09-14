@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 
-import { gameState } from '../../game/gameState';
+import {
+  gameState
+} from '../../game/gameState';
 
 import type {
   MultiplayerClient
@@ -37,11 +39,13 @@ export interface CombatControllerDependencies {
   aiManager: AIManager;
   remotePlayerManager: RemotePlayerManager;
   multiplayer: MultiplayerClient;
-  getLocalTrapBubble: () => LocalTrapBubble | null;
+  getLocalTrapBubble:
+    () => LocalTrapBubble | null;
 }
 
 export function createCombatController(
-  dependencies: CombatControllerDependencies
+  dependencies:
+    CombatControllerDependencies
 ): CombatController {
 
   const {
@@ -51,19 +55,15 @@ export function createCombatController(
     remotePlayerManager,
     multiplayer,
     getLocalTrapBubble,
-  } =
-    dependencies;
+  } = dependencies;
 
   let multiplayerSendTimer =
     0;
 
-  /*
-   * LOCAL PLAYER FIRES BUBBLE
-   *
-   * The local bubble is already created by Player/Attack.
-   * This only tells the server about it so other clients
-   * can display it.
-   */
+  // ========================================
+  // LOCAL BUBBLE -> MULTIPLAYER
+  // ========================================
+
   player.setBubbleFiredListener(
     (
       position,
@@ -74,6 +74,15 @@ export function createCombatController(
         !gameState.multiplayer ||
         !gameState.started
       ) {
+
+        return;
+      }
+
+      if (
+        multiplayer.getStatus() !==
+        'connected'
+      ) {
+
         return;
       }
 
@@ -84,12 +93,10 @@ export function createCombatController(
     }
   );
 
-  /*
-   * REMOTE PLAYER FIRES BUBBLE
-   *
-   * The server sends the projectile to every other client.
-   * We display it locally as visual-only.
-   */
+  // ========================================
+  // REMOTE BUBBLE -> LOCAL VISUAL
+  // ========================================
+
   multiplayer.addBubbleFiredListener(
     (
       shooterId,
@@ -101,18 +108,15 @@ export function createCombatController(
         !gameState.multiplayer ||
         !gameState.started
       ) {
+
         return;
       }
 
-      /*
-       * The server does not send the event back to
-       * the shooter, but keep this check anyway so a
-       * duplicate event can never create a second bubble.
-       */
       if (
         shooterId ===
         multiplayer.getPlayerId()
       ) {
+
         return;
       }
 
@@ -151,6 +155,7 @@ export function createCombatController(
         !gameState.multiplayer ||
         !gameState.started
       ) {
+
         return;
       }
 
@@ -167,6 +172,7 @@ export function createCombatController(
       if (
         !gameState.multiplayer
       ) {
+
         return;
       }
 
@@ -177,6 +183,7 @@ export function createCombatController(
         multiplayerSendTimer <
         0.05
       ) {
+
         return;
       }
 
@@ -197,6 +204,7 @@ export function createCombatController(
         !gameState.playerTrapped ||
         !localTrapBubble
       ) {
+
         return;
       }
 
