@@ -1,3 +1,5 @@
+import * as THREE from 'three';
+
 import type {
   GameState,
   NetworkPlayer
@@ -48,7 +50,16 @@ export class MultiplayerClient {
     ) => void) | null =
     null;
 
-  connect(serverUrl: string): void {
+  private bubbleFiredListeners:
+    Array<(
+      shooterId: string,
+      position: THREE.Vector3,
+      velocity: THREE.Vector3
+    ) => void> = [];
+
+  connect(
+    serverUrl: string
+  ): void {
 
     if (
       this.socket &&
@@ -103,7 +114,8 @@ export class MultiplayerClient {
           'Multiplayer disconnected.'
         );
 
-        this.socket = null;
+        this.socket =
+          null;
 
         this.setStatus(
           'disconnected'
@@ -132,8 +144,11 @@ export class MultiplayerClient {
     if (
       this.socket
     ) {
+
       this.socket.close();
-      this.socket = null;
+
+      this.socket =
+        null;
     }
 
     this.playerId =
@@ -177,7 +192,9 @@ export class MultiplayerClient {
     player: NetworkPlayer
   ): void {
 
-    if (!this.playerId) {
+    if (
+      !this.playerId
+    ) {
       return;
     }
 
@@ -187,7 +204,9 @@ export class MultiplayerClient {
 
       player: {
         ...player,
-        id: this.playerId
+
+        id:
+          this.playerId
       }
     });
   }
@@ -207,6 +226,55 @@ export class MultiplayerClient {
 
       targetId
     });
+  }
+
+  sendBubbleFired(
+    position: THREE.Vector3,
+    velocity: THREE.Vector3
+  ): void {
+
+    if (
+      !this.playerId
+    ) {
+      return;
+    }
+
+    this.send({
+      type:
+        'bubble-fired',
+
+      x:
+        position.x,
+
+      y:
+        position.y,
+
+      z:
+        position.z,
+
+      vx:
+        velocity.x,
+
+      vy:
+        velocity.y,
+
+      vz:
+        velocity.z,
+    });
+  }
+
+  addBubbleFiredListener(
+    listener:
+      (
+        shooterId: string,
+        position: THREE.Vector3,
+        velocity: THREE.Vector3
+      ) => void
+  ): void {
+
+    this.bubbleFiredListeners.push(
+      listener
+    );
   }
 
   startGame(): void {
@@ -354,41 +422,109 @@ export class MultiplayerClient {
 
         break;
 
-        case 'game-state':
-          this.gameState = message.state;
+      case 'bubble-fired': {
 
-          if (this.gameState) {
+        const shooterId =
+          String(
+            message.shooterId
+          );
 
-            console.log(
-              '[NETWORK GAME STATE]',
-              'client:',
-              this.playerId,
-              'phase:',
-              this.gameState.phase,
-              'players:',
-              this.gameState.players.length,
-              this.gameState.players.map(
-                player => player.id
-              )
+        const position =
+          new THREE.Vector3(
+            Number(message.x),
+            Number(message.y),
+            Number(message.z)
+          );
+
+        const velocity =
+          new THREE.Vector3(
+            Number(message.vx),
+            Number(message.vy),
+            Number(message.vz)
+          );
+
+        if (
+          !Number.isFinite(
+            position.x
+          ) ||
+          !Number.isFinite(
+            position.y
+          ) ||
+          !Number.isFinite(
+            position.z
+          ) ||
+          !Number.isFinite(
+            velocity.x
+          ) ||
+          !Number.isFinite(
+            velocity.y
+          ) ||
+          !Number.isFinite(
+            velocity.z
+          )
+        ) {
+          return;
+        }
+
+        for (
+          const listener of
+            this.bubbleFiredListeners
+        ) {
+
+          listener(
+            shooterId,
+            position,
+            velocity
+          );
+        }
+
+        break;
+      }
+
+      case 'game-state':
+
+        this.gameState =
+          message.state;
+
+        if (
+          this.gameState
+        ) {
+
+          console.log(
+            '[NETWORK GAME STATE]',
+            'client:',
+            this.playerId,
+            'phase:',
+            this.gameState.phase,
+            'players:',
+            this.gameState.players.length,
+            this.gameState.players.map(
+              player =>
+                player.id
+            )
+          );
+
+          if (
+            this.onStateUpdate
+          ) {
+
+            this.onStateUpdate(
+              this.gameState
             );
-
-            if (this.onStateUpdate) {
-              this.onStateUpdate(
-                this.gameState
-              );
-            }
-
-            for (
-              const listener of
-                this.stateListeners
-            ) {
-              listener(
-                this.gameState
-              );
-            }
           }
 
-          break;
+          for (
+            const listener of
+              this.stateListeners
+          ) {
+
+            listener(
+              this.gameState
+            );
+          }
+        }
+
+        break;
 
       case 'error':
 

@@ -253,7 +253,33 @@ export class Player {
       targets
     );
   }
+  
+    setBubbleFiredListener(
+    listener:
+      ((
+        position: THREE.Vector3,
+        velocity: THREE.Vector3
+      ) => void) | null
+  ): void {
 
+    this.attack.setBubbleFiredListener(
+      listener
+    );
+  }
+
+  showRemoteBubble(
+    scene: THREE.Scene,
+    position: THREE.Vector3,
+    velocity: THREE.Vector3
+  ): void {
+
+    this.bubbles.fireRemote(
+      scene,
+      position,
+      velocity
+    );
+  }
+  
   getAttackCooldown(): number {
 
     return this.attack.cooldownRemaining;

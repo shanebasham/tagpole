@@ -12,20 +12,46 @@ export interface AttackOptions {
   bubbleInterval?: number;
   headShake?: boolean;
   aimTarget?: () => THREE.Vector3;
+  onBubbleFired?: (
+    position: THREE.Vector3,
+    velocity: THREE.Vector3
+  ) => void;
 }
 
 export class Attack {
-  private shooter: THREE.Object3D;
-  private bubbles: Bubbles;
 
-  private attackRange: number;
-  private facingThreshold: number;
-  private cooldown: number;
-  private duration: number;
-  private bubbleInterval: number;
-  private headShake: boolean;
+  private shooter:
+    THREE.Object3D;
+
+  private bubbles:
+    Bubbles;
+
+  private attackRange:
+    number;
+
+  private facingThreshold:
+    number;
+
+  private cooldown:
+    number;
+
+  private duration:
+    number;
+
+  private bubbleInterval:
+    number;
+
+  private headShake:
+    boolean;
+
   private aimTarget:
     (() => THREE.Vector3) | undefined;
+
+  private onBubbleFired:
+    ((
+      position: THREE.Vector3,
+      velocity: THREE.Vector3
+    ) => void) | null;
 
   private attacking =
     false;
@@ -47,6 +73,7 @@ export class Attack {
     bubbles: Bubbles,
     options: AttackOptions = {}
   ) {
+
     this.shooter =
       shooter;
 
@@ -54,45 +81,55 @@ export class Attack {
       bubbles;
 
     this.attackRange =
-      options.attackRange ??
-      12;
+      options.attackRange ?? 12;
 
     this.facingThreshold =
-      options.facingThreshold ??
-      0.95;
+      options.facingThreshold ?? 0.95;
 
     this.cooldown =
-      options.cooldown ??
-      3;
+      options.cooldown ?? 3;
 
     this.duration =
-      options.duration ??
-      1.2;
+      options.duration ?? 1.2;
 
     this.bubbleInterval =
-      options.bubbleInterval ??
-      0.12;
+      options.bubbleInterval ?? 0.12;
 
     this.headShake =
-      options.headShake ??
-      false;
+      options.headShake ?? false;
 
     this.aimTarget =
       options.aimTarget;
+
+    this.onBubbleFired =
+      options.onBubbleFired ?? null;
   }
 
-  get isAttacking() {
+  get isAttacking(): boolean {
     return this.attacking;
   }
 
-  get cooldownRemaining() {
+  get cooldownRemaining(): number {
     return Math.max(
       0,
       this.cooldownTimer
     );
   }
 
-  start() {
+  setBubbleFiredListener(
+    listener:
+      ((
+        position: THREE.Vector3,
+        velocity: THREE.Vector3
+      ) => void) | null
+  ): void {
+
+    this.onBubbleFired =
+      listener;
+  }
+
+  start(): boolean {
+
     if (
       this.attacking ||
       this.cooldownTimer > 0
@@ -117,7 +154,8 @@ export class Attack {
 
   tryAttack(
     targetPosition: THREE.Vector3
-  ) {
+  ): boolean {
+
     if (
       this.attacking ||
       this.cooldownTimer > 0
@@ -137,7 +175,8 @@ export class Attack {
 
     if (
       this.attackRange > 0 &&
-      distance > this.attackRange
+      distance >
+        this.attackRange
     ) {
       return false;
     }
@@ -146,6 +185,7 @@ export class Attack {
       this.facingThreshold > 0 &&
       distance > 0
     ) {
+
       direction.normalize();
 
       const forward =
@@ -181,10 +221,12 @@ export class Attack {
     delta: number,
     scene: THREE.Scene,
     shooter: THREE.Object3D
-  ) {
+  ): void {
+
     if (
       this.cooldownTimer > 0
     ) {
+
       this.cooldownTimer =
         Math.max(
           0,
@@ -208,15 +250,20 @@ export class Attack {
     if (
       this.headShake
     ) {
+
       const head =
         shooter.getObjectByName(
           'aiHead'
         );
 
-      if (head) {
+      if (
+        head
+      ) {
+
         head.rotation.y =
           Math.sin(
-            this.attackTimer * 24
+            this.attackTimer *
+              24
           ) *
           THREE.MathUtils.degToRad(
             18
@@ -228,6 +275,7 @@ export class Attack {
       this.bubbleSpawnTimer >=
       this.bubbleInterval
     ) {
+
       this.bubbleSpawnTimer -=
         this.bubbleInterval;
 
@@ -241,6 +289,7 @@ export class Attack {
       this.attackTimer >=
       this.duration
     ) {
+
       this.stop();
     }
   }
@@ -248,7 +297,8 @@ export class Attack {
   private fireBubble(
     scene: THREE.Scene,
     shooter: THREE.Object3D
-  ) {
+  ): void {
+
     let aimPosition:
       THREE.Vector3 | null =
       null;
@@ -256,6 +306,7 @@ export class Attack {
     if (
       this.aimTarget
     ) {
+
       this.targetPosition.copy(
         this.aimTarget()
       );
@@ -264,14 +315,26 @@ export class Attack {
         this.targetPosition;
     }
 
-    this.bubbles.fireFromObject(
-      scene,
-      shooter,
-      aimPosition
-    );
+    const result =
+      this.bubbles.fireFromObject(
+        scene,
+        shooter,
+        aimPosition
+      );
+
+    if (
+      this.onBubbleFired
+    ) {
+
+      this.onBubbleFired(
+        result.position,
+        result.velocity
+      );
+    }
   }
 
-  private stop() {
+  private stop(): void {
+
     this.attacking =
       false;
 
@@ -284,19 +347,23 @@ export class Attack {
     if (
       this.headShake
     ) {
+
       const head =
         this.shooter.getObjectByName(
           'aiHead'
         );
 
-      if (head) {
+      if (
+        head
+      ) {
         head.rotation.y =
           0;
       }
     }
   }
 
-  reset() {
+  reset(): void {
+
     this.attacking =
       false;
 
@@ -312,12 +379,15 @@ export class Attack {
     if (
       this.headShake
     ) {
+
       const head =
         this.shooter.getObjectByName(
           'aiHead'
         );
 
-      if (head) {
+      if (
+        head
+      ) {
         head.rotation.y =
           0;
       }

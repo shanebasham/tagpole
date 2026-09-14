@@ -7,7 +7,7 @@ import { gameState } from './game/gameState';
 import { GameFlow } from './game/gameFlow';
 import { GameLoop } from './game/gameLoop';
 
-import { createCombatController } from './game/combatController';
+import { createCombatController } from './player/combat/combatController';
 import { createGameWorldController } from './game/gameWorldController';
 import { WorldManager } from './world/worldManager';
 

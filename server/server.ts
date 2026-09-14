@@ -1355,7 +1355,6 @@ wss.on(
             return;
           }
 
-          // NEW WORLD FOR EVERY START GAME
           currentRoom.worldSeed =
             createWorldSeed();
 
@@ -1423,8 +1422,6 @@ wss.on(
             return;
           }
 
-          // NEW WORLD SEED AS SOON AS
-          // PLAY AGAIN IS PRESSED
           currentRoom.worldSeed =
             createWorldSeed();
 
@@ -1557,6 +1554,126 @@ wss.on(
           broadcastRoomState(
             currentRoom
           );
+
+          return;
+        }
+
+        // ==================================
+        // BUBBLE FIRED
+        // ==================================
+
+        if (
+          message.type ===
+          'bubble-fired'
+        ) {
+
+          if (
+            !currentRoom
+          ) {
+            return;
+          }
+
+          if (
+            currentRoom.phase !==
+            'playing'
+          ) {
+            return;
+          }
+
+          const shooter =
+            currentRoom.players.get(
+              socket
+            );
+
+          if (
+            !shooter
+          ) {
+            return;
+          }
+
+          if (
+            !shooter.alive ||
+            shooter.trapped ||
+            shooter.isDrowned
+          ) {
+            return;
+          }
+
+          const x =
+            Number(
+              message.x
+            );
+
+          const y =
+            Number(
+              message.y
+            );
+
+          const z =
+            Number(
+              message.z
+            );
+
+          const vx =
+            Number(
+              message.vx
+            );
+
+          const vy =
+            Number(
+              message.vy
+            );
+
+          const vz =
+            Number(
+              message.vz
+            );
+
+          if (
+            !Number.isFinite(x) ||
+            !Number.isFinite(y) ||
+            !Number.isFinite(z) ||
+            !Number.isFinite(vx) ||
+            !Number.isFinite(vy) ||
+            !Number.isFinite(vz)
+          ) {
+            return;
+          }
+
+          const bubbleMessage = {
+
+            type:
+              'bubble-fired',
+
+            shooterId:
+              shooter.id,
+
+            x,
+            y,
+            z,
+
+            vx,
+            vy,
+            vz,
+          };
+
+          for (
+            const otherSocket of
+              currentRoom.players.keys()
+          ) {
+
+            if (
+              otherSocket ===
+              socket
+            ) {
+              continue;
+            }
+
+            send(
+              otherSocket,
+              bubbleMessage
+            );
+          }
 
           return;
         }

@@ -1,21 +1,47 @@
 import * as THREE from 'three';
 
 import { gameState } from '../game/gameState';
-import type { MultiplayerClient } from './multiplayerClient';
+
+import type {
+  MultiplayerClient
+} from './multiplayerClient';
+
 import type {
   MultiplayerGame,
   MultiplayerState
 } from './multiplayerGame';
-import type { RemotePlayerManager } from './remotePlayerManager';
-import type { PlayerController } from '../player/playerController';
-import type { MainMenu } from '../menu/mainMenu';
-import type { createGameHud } from '../ui/gameHud';
-import type { createDeathScreen } from '../ui/gameOverScreen';
-import type { LocalTrapBubble } from '../player/combat/localTrapBubble';
+
+import type {
+  RemotePlayerManager
+} from './remotePlayerManager';
+
+import type {
+  PlayerController
+} from '../player/playerController';
+
+import type {
+  MainMenu
+} from '../menu/mainMenu';
+
+import type {
+  createGameHud
+} from '../ui/gameHud';
+
+import type {
+  createDeathScreen
+} from '../ui/gameOverScreen';
+
+import type {
+  LocalTrapBubble
+} from '../player/combat/localTrapBubble';
+
 import {
   createLocalTrapBubble
 } from '../player/combat/localTrapBubble';
-import type { AIManager } from '../player/ai/aiManager';
+
+import type {
+  AIManager
+} from '../player/ai/aiManager';
 
 export interface MultiplayerController {
 
@@ -460,8 +486,20 @@ export function createMultiplayerController(
     gameState.playerDead =
       false;
 
-    gameState.playerTrapped =
-      false;
+    /*
+     * DO NOT reset playerTrapped here.
+     *
+     * updateLocalPlayer() runs immediately
+     * before this function when a network
+     * state arrives. If we reset it here,
+     * the local trap is immediately cleared
+     * from gameState even though the server
+     * says the player is trapped.
+     *
+     * startGame(), handleLobby(), and the
+     * trap-release logic are responsible for
+     * resetting the trapped state.
+     */
 
     gameState.aiRoundOver =
       false;
