@@ -8,7 +8,9 @@ export interface LocalTrapBubble {
   mesh: THREE.Mesh;
   startTime: number;
   endTime: number;
+  startX: number;
   startY: number;
+  startZ: number;
 }
 
 export function createLocalTrapBubble(
@@ -51,21 +53,29 @@ export function createLocalTrapBubble(
 
   return {
     mesh,
+
     startTime:
       player.trappedAt ??
       Date.now(),
+
     endTime:
       player.trapEndAt ??
       Date.now() + 3000,
+
+    startX:
+      player.x,
+
     startY:
       player.y,
+
+    startZ:
+      player.z,
   };
 }
 
 export function updateLocalTrapBubble(
   trap: LocalTrapBubble,
-  position: THREE.Vector3,
-  surfaceY: number = 30
+  surfaceY: number = 31
 ): void {
 
   const now =
@@ -89,18 +99,18 @@ export function updateLocalTrapBubble(
       1
     );
 
-  trap.mesh.position.x =
-    position.x;
-
-  trap.mesh.position.z =
-    position.z;
-
-  trap.mesh.position.y =
+  const y =
     THREE.MathUtils.lerp(
       trap.startY,
       surfaceY,
       progress
     );
+
+  trap.mesh.position.set(
+    trap.startX,
+    y,
+    trap.startZ
+  );
 }
 
 export function clearLocalTrapBubble(

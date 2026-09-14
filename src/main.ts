@@ -23,7 +23,7 @@ import { createFlashlight } from './player/flashlight';
 
 import { AIManager } from './player/ai/aiManager';
 
-import { clearLocalTrapBubble } from './player/combat/localTrapBubble';
+import { clearLocalTrapBubble, updateLocalTrapBubble } from './player/combat/localTrapBubble';
 import type { LocalTrapBubble } from './player/combat/localTrapBubble';
 
 import { createDeathScreen } from './ui/gameOverScreen';
@@ -822,6 +822,20 @@ const gameLoop =
       // ========================
 
       multiplayerController.update();
+
+      // ========================
+      // LOCAL TRAP ANIMATION
+      // ========================
+
+      if (
+        gameState.multiplayer &&
+        gameState.playerTrapped &&
+        localTrapBubble
+      ) {
+        updateLocalTrapBubble(
+          localTrapBubble
+        );
+      }
 
       // ========================
       // MAIN MENU
