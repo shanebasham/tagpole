@@ -4,61 +4,87 @@ import type {
   RockCollider
 } from '../../world/rocks';
 
+import type {
+  CombatTarget
+} from '../combat/bubbles';
+
 import {
   AITadpole
 } from './aiTadpole';
 
+// ==============================
+// CALLBACKS
+// ==============================
+
 export interface AIManagerCallbacks {
+
   onPlayerTrapped: (
     bubble: THREE.Mesh
   ) => void;
 
   onPlayerDied: () => void;
+
+  isPlayerTrapped: () => boolean;
 }
+
+// ==============================
+// AI MANAGER
+// ==============================
 
 export class AIManager {
 
-  private scene: THREE.Scene;
+  private scene:
+    THREE.Scene;
 
-  private camera: THREE.PerspectiveCamera;
+  private camera:
+    THREE.PerspectiveCamera;
 
-  private rocks: RockCollider[];
+  private rocks:
+    RockCollider[];
 
-  private callbacks: AIManagerCallbacks;
+  private callbacks:
+    AIManagerCallbacks;
 
-  private tadpoles: AITadpole[] = [];
+  private tadpoles:
+    AITadpole[] = [];
 
-  private spawnPositions: THREE.Vector3[] = [
-    new THREE.Vector3(
-      15,
-      -5,
-      -15
-    ),
+  private spawnPositions:
+    THREE.Vector3[] = [
 
-    new THREE.Vector3(
-      -20,
-      -8,
-      -20
-    ),
+      new THREE.Vector3(
+        15,
+        -5,
+        -15
+      ),
 
-    new THREE.Vector3(
-      20,
-      -10,
-      15
-    ),
+      new THREE.Vector3(
+        -20,
+        -8,
+        -20
+      ),
 
-    new THREE.Vector3(
-      -25,
-      -12,
-      20
-    ),
+      new THREE.Vector3(
+        20,
+        -10,
+        15
+      ),
 
-    new THREE.Vector3(
-      0,
-      -18,
-      30
-    ),
-  ];
+      new THREE.Vector3(
+        -25,
+        -12,
+        20
+      ),
+
+      new THREE.Vector3(
+        0,
+        -18,
+        30
+      ),
+    ];
+
+  // ==============================
+  // CONSTRUCTOR
+  // ==============================
 
   constructor(
     scene: THREE.Scene,
@@ -80,12 +106,17 @@ export class AIManager {
       callbacks;
   }
 
+  // ==============================
+  // CREATE
+  // ==============================
+
   create(): void {
 
     this.clear();
 
     for (
-      const position of this.spawnPositions
+      const position of
+        this.spawnPositions
     ) {
 
       const ai =
@@ -94,14 +125,26 @@ export class AIManager {
           this.camera,
           this.rocks,
 
-          (bubble) => {
-            this.callbacks.onPlayerTrapped(
-              bubble
-            );
+          (
+            bubble: THREE.Mesh
+          ) => {
+
+            this.callbacks
+              .onPlayerTrapped(
+                bubble
+              );
           },
 
           () => {
-            this.callbacks.onPlayerDied();
+
+            this.callbacks
+              .onPlayerDied();
+          },
+
+          () => {
+
+            return this.callbacks
+              .isPlayerTrapped();
           }
         );
 
@@ -115,12 +158,17 @@ export class AIManager {
     }
   }
 
+  // ==============================
+  // UPDATE
+  // ==============================
+
   update(
     delta: number
   ): void {
 
     for (
-      const ai of this.tadpoles
+      const ai of
+        this.tadpoles
     ) {
 
       if (
@@ -136,36 +184,64 @@ export class AIManager {
     }
   }
 
-  getAll(): AITadpole[] {
+  // ==============================
+  // GET ALL
+  // ==============================
+
+  getAll():
+    AITadpole[] {
 
     return this.tadpoles;
   }
 
-  getAlive(): AITadpole[] {
+  // ==============================
+  // GET ALIVE
+  // ==============================
+
+  getAlive():
+    AITadpole[] {
 
     return this.tadpoles.filter(
-      (ai) =>
-        ai.isAlive()
+      (
+        ai
+      ) => ai.isAlive()
     );
   }
 
-  getAliveCount(): number {
+  // ==============================
+  // GET ALIVE COUNT
+  // ==============================
 
-    return this.getAlive().length;
+  getAliveCount():
+    number {
+
+    return this.getAlive()
+      .length;
   }
 
-  getCombatTargets() {
+  // ==============================
+  // GET COMBAT TARGETS
+  // ==============================
+
+  getCombatTargets():
+    CombatTarget[] {
 
     return this.tadpoles.map(
-      (ai) =>
-        ai.getCombatTarget()
+      (
+        ai
+      ) => ai.getCombatTarget()
     );
   }
+
+  // ==============================
+  // RESET
+  // ==============================
 
   reset(): void {
 
     for (
-      const ai of this.tadpoles
+      const ai of
+        this.tadpoles
     ) {
 
       ai.reset(
@@ -174,14 +250,31 @@ export class AIManager {
     }
   }
 
+  // ==============================
+  // CLEAR
+  // ==============================
+
   clear(): void {
-    for (const ai of this.tadpoles) {
-        ai.reset(this.scene);
-        ai.model.removeFromParent();
+
+    for (
+      const ai of
+        this.tadpoles
+    ) {
+
+      ai.reset(
+        this.scene
+      );
+
+      ai.model.removeFromParent();
     }
 
-    this.tadpoles.length = 0;
-    }
+    this.tadpoles.length =
+      0;
+  }
+
+  // ==============================
+  // DESTROY
+  // ==============================
 
   destroy(): void {
 

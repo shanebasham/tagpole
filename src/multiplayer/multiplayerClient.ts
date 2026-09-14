@@ -177,11 +177,18 @@ export class MultiplayerClient {
     player: NetworkPlayer
   ): void {
 
+    if (!this.playerId) {
+      return;
+    }
+
     this.send({
       type:
         'player-state',
 
-      player
+      player: {
+        ...player,
+        id: this.playerId
+      }
     });
   }
 

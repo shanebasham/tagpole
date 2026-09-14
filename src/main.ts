@@ -350,6 +350,10 @@ aiManager = new AIManager(
 
       gameFlow.playerDied();
     },
+
+    isPlayerTrapped: () => {
+      return gameState.playerTrapped;
+    },
   }
 );
 

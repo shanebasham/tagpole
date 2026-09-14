@@ -212,10 +212,6 @@ export class Bubbles {
     aimPosition:
       THREE.Vector3 | null = null
   ) {
-    /*
-     * KEEPING YOUR ORIGINAL
-     * FIRING DIRECTION.
-     */
     const forward =
       new THREE.Vector3(
         0,
@@ -243,8 +239,6 @@ export class Bubbles {
     let direction =
       forward.clone();
 
-    // AI:
-    // aim directly toward player.
     if (
       aimPosition
     ) {
@@ -321,12 +315,6 @@ export class Bubbles {
       return false;
     }
 
-    /*
-     * IMPORTANT:
-     *
-     * Every trapping bubble is now
-     * stored independently.
-     */
     this.trappingBubbles.push({
       mesh: bubble,
       target,
@@ -433,6 +421,49 @@ export class Bubbles {
   }
 
   // ==============================
+  // CLEAR PROJECTILES
+  // ==============================
+
+  clearProjectiles(
+    scene: THREE.Scene
+  ): void {
+    for (
+      const bubble of
+        this.smallBubbles
+    ) {
+      if (
+        !bubble ||
+        !bubble.mesh
+      ) {
+        continue;
+      }
+
+      scene.remove(
+        bubble.mesh
+      );
+
+      bubble.mesh.geometry.dispose();
+
+      const material =
+        bubble.mesh.material;
+
+      if (
+        Array.isArray(material)
+      ) {
+        for (
+          const item of material
+        ) {
+          item.dispose();
+        }
+      } else {
+        material.dispose();
+      }
+    }
+
+    this.smallBubbles = [];
+  }
+
+  // ==============================
   // UPDATE SMALL BUBBLES
   // ==============================
 
@@ -449,6 +480,18 @@ export class Bubbles {
     ) {
       const bubble =
         this.smallBubbles[i];
+
+      if (
+        !bubble ||
+        !bubble.mesh
+      ) {
+        this.smallBubbles.splice(
+          i,
+          1
+        );
+
+        continue;
+      }
 
       bubble.mesh.position.addScaledVector(
         bubble.velocity,
@@ -478,13 +521,6 @@ export class Bubbles {
       // TARGET COLLISION
       // ==========================
 
-      /*
-       * Find the closest target
-       * touched by THIS projectile.
-       *
-       * Other projectiles are processed
-       * independently.
-       */
       let hitTarget:
         CombatTarget | null =
         null;
@@ -494,9 +530,10 @@ export class Bubbles {
 
       for (
         const target of
-        this.targets
+          this.targets
       ) {
         if (
+          !target ||
           !target.isAlive() ||
           target.isTrapped()
         ) {
@@ -571,6 +608,22 @@ export class Bubbles {
             1
           );
 
+          /*
+           * DO NOT call clearProjectiles()
+           * here.
+           *
+           * updateSmallBubbles() is currently
+           * iterating over smallBubbles.
+           *
+           * Clearing the entire array here
+           * causes later loop iterations to
+           * receive undefined entries.
+           *
+           * AITadpole handles clearing the
+           * remaining projectiles AFTER
+           * Bubbles.update() finishes.
+           */
+
           continue;
         }
       }
@@ -610,16 +663,33 @@ export class Bubbles {
     scene: THREE.Scene,
     bubble: SmallBubble
   ) {
+    if (
+      !bubble ||
+      !bubble.mesh
+    ) {
+      return;
+    }
+
     scene.remove(
       bubble.mesh
     );
 
     bubble.mesh.geometry.dispose();
 
-    (
-      bubble.mesh.material as
-        THREE.Material
-    ).dispose();
+    const material =
+      bubble.mesh.material;
+
+    if (
+      Array.isArray(material)
+    ) {
+      for (
+        const item of material
+      ) {
+        item.dispose();
+      }
+    } else {
+      material.dispose();
+    }
   }
 
   // ==============================
@@ -639,6 +709,18 @@ export class Bubbles {
     ) {
       const trappingBubble =
         this.trappingBubbles[i];
+
+      if (
+        !trappingBubble ||
+        !trappingBubble.mesh
+      ) {
+        this.trappingBubbles.splice(
+          i,
+          1
+        );
+
+        continue;
+      }
 
       const bubble =
         trappingBubble.mesh;
@@ -696,15 +778,21 @@ export class Bubbles {
 
         bubble.geometry.dispose();
 
-        (
-          bubble.material as
-            THREE.Material
-        ).dispose();
+        const material =
+          bubble.material;
 
-        /*
-         * Save the target before
-         * removing the trapping bubble.
-         */
+        if (
+          Array.isArray(material)
+        ) {
+          for (
+            const item of material
+          ) {
+            item.dispose();
+          }
+        } else {
+          material.dispose();
+        }
+
         target.onBubbleReachedSurface();
 
         this.trappingBubbles.splice(
@@ -731,6 +819,18 @@ export class Bubbles {
     ) {
       const pop =
         this.bubblePops[i];
+
+      if (
+        !pop ||
+        !pop.mesh
+      ) {
+        this.bubblePops.splice(
+          i,
+          1
+        );
+
+        continue;
+      }
 
       pop.life -=
         delta;
@@ -799,10 +899,20 @@ export class Bubbles {
 
           mesh.geometry.dispose();
 
-          (
-            mesh.material as
-              THREE.Material
-          ).dispose();
+          const material =
+            mesh.material;
+
+          if (
+            Array.isArray(material)
+          ) {
+            for (
+              const item of material
+            ) {
+              item.dispose();
+            }
+          } else {
+            material.dispose();
+          }
         }
 
         this.bubblePops.splice(
@@ -851,12 +961,6 @@ export class Bubbles {
     );
   }
 
-  /*
-   * Kept for compatibility with
-   * your existing Player/HUD code.
-   *
-   * Returns the first active bubble.
-   */
   get bubble() {
     return (
       this.trappingBubbles.length >
@@ -873,32 +977,41 @@ export class Bubbles {
   reset(
     scene: THREE.Scene
   ) {
-    for (
-      const bubble of
-        this.smallBubbles
-    ) {
-      this.removeProjectile(
-        scene,
-        bubble
-      );
-    }
-
-    this.smallBubbles = [];
+    this.clearProjectiles(
+      scene
+    );
 
     for (
       const trappingBubble of
         this.trappingBubbles
     ) {
+      if (
+        !trappingBubble ||
+        !trappingBubble.mesh
+      ) {
+        continue;
+      }
+
       scene.remove(
         trappingBubble.mesh
       );
 
       trappingBubble.mesh.geometry.dispose();
 
-      (
-        trappingBubble.mesh.material as
-          THREE.Material
-      ).dispose();
+      const material =
+        trappingBubble.mesh.material;
+
+      if (
+        Array.isArray(material)
+      ) {
+        for (
+          const item of material
+        ) {
+          item.dispose();
+        }
+      } else {
+        material.dispose();
+      }
     }
 
     this.trappingBubbles = [];
@@ -907,6 +1020,13 @@ export class Bubbles {
       const pop of
         this.bubblePops
     ) {
+      if (
+        !pop ||
+        !pop.mesh
+      ) {
+        continue;
+      }
+
       scene.remove(
         pop.mesh
       );
@@ -920,10 +1040,20 @@ export class Bubbles {
 
         mesh.geometry.dispose();
 
-        (
-          mesh.material as
-            THREE.Material
-        ).dispose();
+        const material =
+          mesh.material;
+
+        if (
+          Array.isArray(material)
+        ) {
+          for (
+            const item of material
+          ) {
+            item.dispose();
+          }
+        } else {
+          material.dispose();
+        }
       }
     }
 

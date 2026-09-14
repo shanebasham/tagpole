@@ -43,6 +43,9 @@ export class AITadpole {
   private dead =
     false;
 
+  private isPlayerTrapped:
+    () => boolean;
+
   constructor(
     scene: THREE.Scene,
     target: THREE.PerspectiveCamera,
@@ -50,10 +53,14 @@ export class AITadpole {
     onPlayerTrapped: (
       bubble: THREE.Mesh
     ) => void,
-    onPlayerDied: () => void
+    onPlayerDied: () => void,
+    isPlayerTrapped: () => boolean
   ) {
     this.target =
       target;
+
+    this.isPlayerTrapped =
+      isPlayerTrapped;
 
     this.model =
       this.createTadpole();
@@ -77,11 +84,17 @@ export class AITadpole {
         this.bubbles,
         {
           attackRange: 12,
+
           facingThreshold: 0.95,
+
           cooldown: 3,
+
           duration: 1.2,
+
           bubbleInterval: 0.12,
+
           headShake: true,
+
           aimTarget: () => {
             return this.target.position;
           },
@@ -102,16 +115,24 @@ export class AITadpole {
       },
 
       isAlive: () => {
-        return true;
+        return !this.dead;
       },
 
       isTrapped: () => {
-        return false;
+        return this.isPlayerTrapped();
       },
 
       trap: (
         bubble: THREE.Mesh
       ) => {
+
+        if (
+          this.dead ||
+          this.isPlayerTrapped()
+        ) {
+          return false;
+        }
+
         onPlayerTrapped(
           bubble
         );
@@ -122,8 +143,8 @@ export class AITadpole {
       updateTrappedPosition: (
         _position: THREE.Vector3
       ) => {
-        // Player handles its own
-        // trapped bubble position.
+        // The player handles
+        // their own trapped position.
       },
 
       onBubbleReachedSurface:
@@ -137,9 +158,19 @@ export class AITadpole {
     ]);
   }
 
-  private createTadpole() {
-    const tadpole =
+  // ==============================
+  // CREATE TADPOLE
+  // ==============================
+
+  private createTadpole():
+    THREE.Group {
+
+    const group =
       new THREE.Group();
+
+    // ==========================
+    // BODY
+    // ==========================
 
     const bodyGeometry =
       new THREE.SphereGeometry(
@@ -166,9 +197,13 @@ export class AITadpole {
       1.15
     );
 
-    tadpole.add(
+    group.add(
       body
     );
+
+    // ==========================
+    // HEAD
+    // ==========================
 
     const head =
       new THREE.Group();
@@ -176,9 +211,13 @@ export class AITadpole {
     head.name =
       'aiHead';
 
-    tadpole.add(
+    group.add(
       head
     );
+
+    // ==========================
+    // EYES
+    // ==========================
 
     const eyeGeometry =
       new THREE.SphereGeometry(
@@ -190,16 +229,10 @@ export class AITadpole {
     const eyeMaterial =
       new THREE.MeshStandardMaterial({
         color: 0x050706,
-        roughness: 0.65,
+        roughness: 0.5,
       });
 
     const leftEye =
-      new THREE.Mesh(
-        eyeGeometry,
-        eyeMaterial
-      );
-
-    const rightEye =
       new THREE.Mesh(
         eyeGeometry,
         eyeMaterial
@@ -211,6 +244,16 @@ export class AITadpole {
       -0.58
     );
 
+    head.add(
+      leftEye
+    );
+
+    const rightEye =
+      new THREE.Mesh(
+        eyeGeometry,
+        eyeMaterial
+      );
+
     rightEye.position.set(
       0.4,
       0.32,
@@ -218,11 +261,14 @@ export class AITadpole {
     );
 
     head.add(
-      leftEye,
       rightEye
     );
 
-    const tailGeometry =
+    // ==========================
+    // TAIL
+    // ==========================
+
+const tailGeometry =
       new THREE.ConeGeometry(
         0.42,
         3.0,
@@ -248,9 +294,13 @@ export class AITadpole {
     tail.position.z =
       1.65;
 
-    tadpole.add(
+    group.add(
       tail
     );
+
+    // ==========================
+    // BELLY
+    // ==========================
 
     const bellyGeometry =
       new THREE.SphereGeometry(
@@ -262,7 +312,7 @@ export class AITadpole {
     const bellyMaterial =
       new THREE.MeshStandardMaterial({
         color: 0x668d79,
-        roughness: 1,
+        roughness: 0.85,
       });
 
     const belly =
@@ -283,82 +333,70 @@ export class AITadpole {
       -0.1
     );
 
-    tadpole.add(
+    group.add(
       belly
     );
 
-    return tadpole;
+    return group;
   }
 
-  /*
-   * Returns the actual world-space center
-   * of the ENTIRE rendered tadpole.
-   *
-   * This includes:
-   * - body
-   * - eyes
-   * - belly
-   * - entire tail
-   */
-  private getTadpoleCenter():
+  // ==============================
+  // CENTER
+  // ==============================
+
+  getTadpoleCenter():
     THREE.Vector3 {
 
-    this.model.updateWorldMatrix(
-      true,
-      true
-    );
-
     const box =
-      new THREE.Box3();
+      new THREE.Box3()
+        .setFromObject(
+          this.model
+        );
 
-    box.setFromObject(
-      this.model
+    return box.getCenter(
+      new THREE.Vector3()
     );
-
-    const center =
-      new THREE.Vector3();
-
-    box.getCenter(
-      center
-    );
-
-    return center;
   }
 
-  /*
-   * Moves the tadpole so that the center
-   * of its COMPLETE bounding box is at
-   * the supplied world position.
-   */
-  private setTadpoleCenter(
-    position: THREE.Vector3
+  setTadpoleCenter(
+    center: THREE.Vector3
   ): void {
 
     const currentCenter =
       this.getTadpoleCenter();
 
-    this.model.position.x +=
-      position.x -
-      currentCenter.x;
+    const offset =
+      new THREE.Vector3()
+        .subVectors(
+          center,
+          currentCenter
+        );
 
-    this.model.position.y +=
-      position.y -
-      currentCenter.y;
-
-    this.model.position.z +=
-      position.z -
-      currentCenter.z;
+    this.model.position.add(
+      offset
+    );
   }
+
+  // ==============================
+  // UPDATE
+  // ==============================
 
   update(
     delta: number,
     scene: THREE.Scene
-  ) {
+  ): void {
+
     if (
       this.dead
     ) {
       return;
     }
+
+    // Always update existing bubbles first.
+    //
+    // This allows the large trapping bubble
+    // to continue rising after the player
+    // has been trapped.
 
     this.bubbles.update(
       delta,
@@ -366,13 +404,57 @@ export class AITadpole {
       this.movement.time
     );
 
+    // ==========================
+    // PLAYER TRAPPED
+    // ==========================
+
+    if (
+      this.isPlayerTrapped()
+    ) {
+
+      // Stop the AI's current attack.
+
+      this.attack.reset();
+
+      // Remove small attack projectiles.
+      //
+      // This does NOT remove the active
+      // trapping bubble.
+
+      this.bubbles.clearProjectiles(
+        scene
+      );
+
+      // IMPORTANT:
+      // Do NOT call movement.stop() here.
+      //
+      // The AI should continue swimming
+      // while the player is trapped.
+
+      this.movement.update(
+        delta,
+        this.target.position
+      );
+
+      return;
+    }
+
+    // ==========================
+    // AI TRAPPED
+    // ==========================
+
     if (
       this.trapped
     ) {
+
       this.movement.stop();
 
       return;
     }
+
+    // ==========================
+    // ATTACK
+    // ==========================
 
     this.attack.tryAttack(
       this.target.position
@@ -387,10 +469,15 @@ export class AITadpole {
     if (
       this.attack.isAttacking
     ) {
+
       this.movement.stop();
 
       return;
     }
+
+    // ==========================
+    // MOVEMENT
+    // ==========================
 
     this.movement.update(
       delta,
@@ -398,12 +485,17 @@ export class AITadpole {
     );
   }
 
+  // ==============================
+  // COMBAT TARGET
+  // ==============================
+
   getCombatTarget():
     CombatTarget {
+
     return {
 
       getPosition: () => {
-        return this.model.position;
+        return this.getTadpoleCenter();
       },
 
       isAlive: () => {
@@ -415,8 +507,9 @@ export class AITadpole {
       },
 
       trap: (
-        bubble: THREE.Mesh
+        _bubble: THREE.Mesh
       ) => {
+
         if (
           this.dead ||
           this.trapped
@@ -427,210 +520,93 @@ export class AITadpole {
         this.trapped =
           true;
 
-        this.attack.reset();
-
-        this.movement.stop();
-
-        this.model.visible =
-          true;
-
-        /*
-         * AI bubbles are 35% larger
-         * than normal player bubbles.
-         */
-        bubble.scale.setScalar(
-          1.35
-        );
-
-        /*
-         * Find the center of the COMPLETE
-         * tadpole, including its tail.
-         */
-        const center =
-          this.getTadpoleCenter();
-
-        /*
-         * The bubble center is now
-         * EXACTLY the tadpole center.
-         */
-        bubble.position.copy(
-          center
-        );
-
-        /*
-         * Reposition the tadpole so its
-         * complete bounding-box center
-         * is exactly inside the bubble.
-         */
-        this.setTadpoleCenter(
-          bubble.position
-        );
-
-        this.model.position.y -=
-          0.15;
-
         return true;
       },
 
       updateTrappedPosition: (
         position: THREE.Vector3
       ) => {
+
         if (
-          !this.trapped ||
-          this.dead
+          this.trapped
         ) {
-          return;
+          this.setTadpoleCenter(
+            position
+          );
         }
-
-        /*
-         * Keep the COMPLETE tadpole centered
-         * inside the rising bubble.
-         */
-        this.setTadpoleCenter(
-          position
-        );
-
-        this.model.position.y -=
-          0.15;
       },
 
       onBubbleReachedSurface:
         () => {
-          this.onBubbleReachedSurface();
+
+          this.dead =
+            true;
         },
     };
   }
 
-  trap(
-    bubble: THREE.Mesh
-  ) {
-    if (
-      this.dead ||
-      this.trapped
-    ) {
-      return false;
-    }
+  // ==============================
+  // BUBBLE
+  // ==============================
 
-    this.trapped =
-      true;
+  get bubble():
+    THREE.Mesh | null {
 
-    this.attack.reset();
-
-    this.movement.stop();
-
-    this.model.visible =
-      true;
-
-    /*
-     * AI bubbles are 35% larger.
-     */
-    bubble.scale.setScalar(
-      1.35
-    );
-
-    /*
-     * Find the actual center of the
-     * whole tadpole.
-     */
-    const center =
-      this.getTadpoleCenter();
-
-    /*
-     * Put the bubble exactly there.
-     */
-    bubble.position.copy(
-      center
-    );
-
-    /*
-     * Put the entire tadpole exactly
-     * around the bubble center.
-     */
-    this.setTadpoleCenter(
-      bubble.position
-    );
-
-    this.model.position.y -=
-      0.15;
-
-    return true;
-  }
-
-  updateTrappedPosition(
-    position: THREE.Vector3
-  ) {
-    if (
-      !this.trapped ||
-      this.dead
-    ) {
-      return;
-    }
-
-    /*
-     * Keep the actual geometric center
-     * of the tadpole at the bubble center.
-     */
-    this.setTadpoleCenter(
-      position
-    );
-
-    this.model.position.y -=
-      0.15;
-  }
-
-  onBubbleReachedSurface() {
-    if (
-      this.dead
-    ) {
-      return;
-    }
-
-    this.trapped =
-      false;
-
-    this.dead =
-      true;
-
-    this.model.visible =
-      false;
-  }
-
-  isAlive() {
-    return !this.dead;
-  }
-
-  isTrapped() {
-    return this.trapped;
-  }
-
-  get isPlayerTrapped() {
-    return this.bubbles.isTrapping;
-  }
-
-  get bubble() {
     return this.bubbles.bubble;
   }
 
-  get isAttacking() {
-    return this.attack.isAttacking;
+  // ==============================
+  // STATE
+  // ==============================
+
+  isAlive():
+    boolean {
+
+    return !this.dead;
   }
+
+  isTrapped():
+    boolean {
+
+    return this.trapped;
+  }
+
+  // ==============================
+  // RESET
+  // ==============================
 
   reset(
     scene: THREE.Scene
-  ) {
-    this.trapped =
-      false;
+  ): void {
 
     this.dead =
       false;
 
-    this.model.visible =
-      true;
-
-    this.attack.reset();
+    this.trapped =
+      false;
 
     this.bubbles.reset(
       scene
     );
+
+    this.attack.reset();
+
+    this.model.visible =
+      true;
+  }
+
+  // ==============================
+  // DESTROY
+  // ==============================
+
+  destroy(
+    scene: THREE.Scene
+  ): void {
+
+    this.bubbles.reset(
+      scene
+    );
+
+    this.model.removeFromParent();
   }
 }
