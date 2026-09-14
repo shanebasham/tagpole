@@ -9,6 +9,7 @@ import {
 } from './remotePlayer';
 
 export interface RemotePlayerMultiplayer {
+
   sendTrapPlayer(
     targetId: string
   ): void;
@@ -16,12 +17,13 @@ export interface RemotePlayerMultiplayer {
 
 export class RemotePlayerManager {
 
-  private scene: THREE.Scene;
+  private readonly scene:
+    THREE.Scene;
 
-  private multiplayer:
+  private readonly multiplayer:
     RemotePlayerMultiplayer;
 
-  private players =
+  private readonly players =
     new Map<
       string,
       RemotePlayer
@@ -48,7 +50,8 @@ export class RemotePlayerManager {
       new Set<string>();
 
     for (
-      const player of networkPlayers
+      const player
+      of networkPlayers
     ) {
 
       if (
@@ -67,7 +70,9 @@ export class RemotePlayerManager {
           player.id
         );
 
-      if (!remote) {
+      if (
+        !remote
+      ) {
 
         remote =
           new RemotePlayer(
@@ -90,7 +95,10 @@ export class RemotePlayerManager {
     }
 
     for (
-      const [id, remote]
+      const [
+        id,
+        remote
+      ]
       of this.players
     ) {
 
@@ -125,39 +133,41 @@ export class RemotePlayerManager {
 
   get(
     id: string
-  ): RemotePlayer | undefined {
+  ):
+    RemotePlayer | undefined {
 
     return this.players.get(
       id
     );
   }
 
-  getAll(): RemotePlayer[] {
+  getAll():
+    RemotePlayer[] {
 
     return Array.from(
       this.players.values()
     );
   }
 
-  getCombatTargets() {
+  getCombatTargets():
+    RemotePlayer[] {
 
-    return this.getAll().map(
-      (player) =>
-        player
-    );
+    return this.getAll();
   }
 
-  getAliveCount(): number {
+  getAliveCount():
+    number {
 
-    let count = 0;
+    let count =
+      0;
 
     for (
-      const player
+      const remote
       of this.players.values()
     ) {
 
       if (
-        player.isAlive()
+        remote.isAlive()
       ) {
 
         count++;

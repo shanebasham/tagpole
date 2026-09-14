@@ -71,6 +71,20 @@ export class Player {
   private attack:
     Attack;
 
+  /*
+   * Multiplayer trap timing.
+   *
+   * These are primarily used when this
+   * client is the trapped player.
+   */
+  private trappedAt:
+    number | null =
+    null;
+
+  private trapEndAt:
+    number | null =
+    null;
+
   constructor(
     scene: THREE.Scene,
     camera: THREE.PerspectiveCamera,
@@ -249,21 +263,24 @@ export class Player {
   // TRAPPED
   // ==============================
 
-  private getPlayerCenter(): THREE.Vector3 {
+  private getPlayerCenter():
+    THREE.Vector3 {
 
     this.model.updateWorldMatrix(
       true,
       true
     );
 
-    const box: THREE.Box3 =
+    const box:
+      THREE.Box3 =
       new THREE.Box3();
 
     box.setFromObject(
       this.model
     );
 
-    const center: THREE.Vector3 =
+    const center:
+      THREE.Vector3 =
       new THREE.Vector3();
 
     box.getCenter(
@@ -333,17 +350,55 @@ export class Player {
       this.model.visible =
         true;
 
+      /*
+       * Trap timing is ultimately
+       * controlled by the server in
+       * multiplayer.
+       */
+      if (
+        this.trappedAt === null
+      ) {
+
+        this.trappedAt =
+          Date.now();
+      }
+
       this.cameraSystem.setTrapped(
         bubble
       );
 
     } else {
 
+      this.trappedAt =
+        null;
+
+      this.trapEndAt =
+        null;
+
       this.cameraSystem.clearTrapped();
 
       this.model.visible =
         false;
     }
+  }
+
+  /*
+   * Allows multiplayer code to give
+   * the local player the exact server
+   * trap timing.
+   */
+  setNetworkTrapTiming(
+    trappedAt:
+      number | null,
+    trapEndAt:
+      number | null
+  ): void {
+
+    this.trappedAt =
+      trappedAt;
+
+    this.trapEndAt =
+      trapEndAt;
   }
 
   // ==============================
@@ -373,7 +428,8 @@ export class Player {
   // POSITION
   // ==============================
 
-  get position(): THREE.Vector3 {
+  get position():
+    THREE.Vector3 {
 
     return this.camera.position;
   }
@@ -405,6 +461,11 @@ export class Player {
       pitch:
         this.controls.pitch,
 
+      /*
+       * Movement is currently driven
+       * directly by position, so these
+       * remain zero.
+       */
       vx:
         0,
 
@@ -424,10 +485,10 @@ export class Player {
         false,
 
       trappedAt:
-        null,
+        this.trappedAt,
 
       trapEndAt:
-        null,
+        this.trapEndAt,
     };
   }
 }

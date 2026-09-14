@@ -819,6 +819,16 @@ const gameLoop =
 
       multiplayerController.update();
 
+      if (
+        gameState.multiplayer &&
+        gameState.started
+      ) {
+
+        multiplayer.sendPlayerState(
+          player.getNetworkState()
+        );
+      }
+
       // ========================
       // MAIN MENU
       // ========================

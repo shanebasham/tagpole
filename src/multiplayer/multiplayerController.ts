@@ -2,47 +2,81 @@ import * as THREE from 'three';
 
 import { gameState } from '../game/gameState';
 import type { MultiplayerClient } from './multiplayerClient';
-import type { MultiplayerGame, MultiplayerState } from './multiplayerGame';
+import type {
+  MultiplayerGame,
+  MultiplayerState
+} from './multiplayerGame';
 import type { RemotePlayerManager } from './remotePlayerManager';
 import type { PlayerController } from '../player/playerController';
 import type { MainMenu } from '../menu/mainMenu';
 import type { createGameHud } from '../ui/gameHud';
 import type { createDeathScreen } from '../ui/gameOverScreen';
 import type { LocalTrapBubble } from '../player/combat/localTrapBubble';
-import { createLocalTrapBubble } from '../player/combat/localTrapBubble';
+import {
+  createLocalTrapBubble
+} from '../player/combat/localTrapBubble';
 import type { AIManager } from '../player/ai/aiManager';
 
 export interface MultiplayerController {
+
   start(): void;
+
   stop(): void;
+
   createRoom(): void;
-  joinRoom(roomCode: string): void;
+
+  joinRoom(
+    roomCode: string
+  ): void;
+
   startGame(): void;
+
   update(): void;
 }
 
 export interface MultiplayerControllerDependencies {
+
   scene: THREE.Scene;
+
   multiplayer: MultiplayerClient;
+
   multiplayerGame: MultiplayerGame;
+
   remotePlayerManager: RemotePlayerManager;
+
   playerController: PlayerController;
+
   mainMenu: MainMenu;
-  hud: ReturnType<typeof createGameHud>;
-  deathScreen: ReturnType<typeof createDeathScreen>;
+
+  hud: ReturnType<
+    typeof createGameHud
+  >;
+
+  deathScreen: ReturnType<
+    typeof createDeathScreen
+  >;
+
   pointerLock: {
     lock(): void;
     unlock(): void;
   };
+
   aiManager: AIManager;
-  getLocalTrapBubble: () => LocalTrapBubble | null;
-  setLocalTrapBubble: (bubble: LocalTrapBubble | null) => void;
+
+  getLocalTrapBubble: () =>
+    LocalTrapBubble | null;
+
+  setLocalTrapBubble: (
+    bubble: LocalTrapBubble | null
+  ) => void;
+
   updateCombatTargets: () => void;
 }
 
 export function createMultiplayerController(
   dependencies: MultiplayerControllerDependencies
 ): MultiplayerController {
+
   const {
     scene,
     multiplayer,
@@ -59,63 +93,120 @@ export function createMultiplayerController(
     updateCombatTargets,
   } = dependencies;
 
-  let startRequested = false;
+  let startRequested =
+    false;
 
-  let lastLobbyRoomCode: string | null = null;
-  let lastLobbyPlayerCount = -1;
-  let lastLobbyMaxPlayers = -1;
-  let lastLobbyIsHost = false;
+  let lastLobbyRoomCode:
+    string | null =
+    null;
 
-  const resetLobbyDisplay = (): void => {
-    lastLobbyRoomCode = null;
-    lastLobbyPlayerCount = -1;
-    lastLobbyMaxPlayers = -1;
-    lastLobbyIsHost = false;
-  };
+  let lastLobbyPlayerCount =
+    -1;
+
+  let lastLobbyMaxPlayers =
+    -1;
+
+  let lastLobbyIsHost =
+    false;
+
+  // ==============================
+  // LOBBY DISPLAY
+  // ==============================
+
+  const resetLobbyDisplay =
+    (): void => {
+
+      lastLobbyRoomCode =
+        null;
+
+      lastLobbyPlayerCount =
+        -1;
+
+      lastLobbyMaxPlayers =
+        -1;
+
+      lastLobbyIsHost =
+        false;
+    };
+
+  // ==============================
+  // START / STOP
+  // ==============================
 
   const start = (): void => {
+
     multiplayerGame.start();
   };
 
   const stop = (): void => {
+
     multiplayerGame.stop();
-    startRequested = false;
+
+    startRequested =
+      false;
+
     resetLobbyDisplay();
   };
 
+  // ==============================
+  // CREATE ROOM
+  // ==============================
+
   const createRoom = (): void => {
-    startRequested = false;
+
+    startRequested =
+      false;
+
     resetLobbyDisplay();
 
     playerController.clearTrap();
+
     aiManager.clear();
+
     remotePlayerManager.clear();
 
     multiplayerGame.start();
+
     multiplayer.createRoom();
   };
+
+  // ==============================
+  // JOIN ROOM
+  // ==============================
 
   const joinRoom = (
     roomCode: string
   ): void => {
-    startRequested = false;
+
+    startRequested =
+      false;
+
     resetLobbyDisplay();
 
     playerController.clearTrap();
+
     aiManager.clear();
+
     remotePlayerManager.clear();
 
     multiplayerGame.start();
+
     multiplayer.joinRoom(
       roomCode
     );
   };
 
+  // ==============================
+  // START GAME
+  // ==============================
+
   const startGame = (): void => {
+
     if (
       multiplayer.getStatus() !==
       'connected'
     ) {
+
       console.warn(
         'Cannot start multiplayer game; multiplayer is not connected.'
       );
@@ -129,7 +220,8 @@ export function createMultiplayerController(
       return;
     }
 
-    startRequested = true;
+    startRequested =
+      true;
 
     multiplayerGame.start();
 
@@ -153,10 +245,17 @@ export function createMultiplayerController(
     multiplayer.startGame();
   };
 
+  // ==============================
+  // REMOTE PLAYERS
+  // ==============================
+
   const updatePlayers = (
-    players: MultiplayerState['players'],
-    playerId: string | null
+    players:
+      MultiplayerState['players'],
+    playerId:
+      string | null
   ): void => {
+
     if (
       !gameState.multiplayer
     ) {
@@ -171,11 +270,16 @@ export function createMultiplayerController(
     updateCombatTargets();
   };
 
+  // ==============================
+  // LOCAL PLAYER
+  // ==============================
+
   const updateLocalPlayer = (
     networkPlayer:
       MultiplayerState['players'][number] |
       null
   ): void => {
+
     if (
       !gameState.multiplayer ||
       !networkPlayer
@@ -183,29 +287,41 @@ export function createMultiplayerController(
       return;
     }
 
+    /*
+     * Give Player the authoritative
+     * server trap timing/state.
+     */
+    playerController.updateNetworkState(
+      networkPlayer
+    );
+
+    // ============================
+    // DROWNED
+    // ============================
+
     if (
       networkPlayer.isDrowned
     ) {
-      if (
-        !gameState.playerDead
-      ) {
-        playerController.die();
-      }
-
       return;
     }
+
+    // ============================
+    // NEW TRAP
+    // ============================
 
     if (
       networkPlayer.trapped &&
       !gameState.playerTrapped &&
       !gameState.playerDead
     ) {
+
       let bubble =
         getLocalTrapBubble();
 
       if (
         !bubble
       ) {
+
         bubble =
           createLocalTrapBubble(
             scene,
@@ -224,20 +340,32 @@ export function createMultiplayerController(
       return;
     }
 
+    // ============================
+    // TRAP RELEASED
+    // ============================
+
     if (
       !networkPlayer.trapped &&
       gameState.playerTrapped &&
       !gameState.playerDead
     ) {
+
       playerController.clearTrap();
+
+      return;
     }
   };
+
+  // ==============================
+  // LOBBY
+  // ==============================
 
   const handleLobby = (
     state: MultiplayerState,
     roomCode: string,
     playerId: string | null
   ): void => {
+
     if (
       startRequested
     ) {
@@ -265,10 +393,14 @@ export function createMultiplayerController(
       playerId === state.hostId;
 
     const lobbyChanged =
-      roomCode !== lastLobbyRoomCode ||
-      state.players.length !== lastLobbyPlayerCount ||
-      state.maxPlayers !== lastLobbyMaxPlayers ||
-      isHost !== lastLobbyIsHost;
+      roomCode !==
+        lastLobbyRoomCode ||
+      state.players.length !==
+        lastLobbyPlayerCount ||
+      state.maxPlayers !==
+        lastLobbyMaxPlayers ||
+      isHost !==
+        lastLobbyIsHost;
 
     if (
       !lobbyChanged
@@ -289,9 +421,11 @@ export function createMultiplayerController(
       isHost;
 
     playerController.clearTrap();
+
     playerController.reset();
 
     aiManager.clear();
+
     remotePlayerManager.clear();
 
     deathScreen.hide();
@@ -304,10 +438,17 @@ export function createMultiplayerController(
     );
   };
 
+  // ==============================
+  // PLAYING
+  // ==============================
+
   const handlePlaying = (
     state: MultiplayerState
   ): void => {
-    startRequested = false;
+
+    startRequested =
+      false;
+
     resetLobbyDisplay();
 
     gameState.started =
@@ -341,11 +482,18 @@ export function createMultiplayerController(
     updateCombatTargets();
   };
 
+  // ==============================
+  // ROUND ENDED
+  // ==============================
+
   const handleEnded = (
     state: MultiplayerState,
     isHost: boolean
   ): void => {
-    startRequested = false;
+
+    startRequested =
+      false;
+
     resetLobbyDisplay();
 
     gameState.started =
@@ -376,7 +524,12 @@ export function createMultiplayerController(
     );
   };
 
+  // ==============================
+  // CALLBACKS
+  // ==============================
+
   multiplayerGame.setCallbacks({
+
     onLobby:
       handleLobby,
 
@@ -393,14 +546,24 @@ export function createMultiplayerController(
       updateLocalPlayer,
   });
 
+  // ==============================
+  // CONTROLLER
+  // ==============================
+
   return {
+
     start,
+
     stop,
+
     createRoom,
+
     joinRoom,
+
     startGame,
 
     update: (): void => {
+
       multiplayerGame.update();
     },
   };

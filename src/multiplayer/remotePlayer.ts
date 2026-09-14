@@ -1,10 +1,16 @@
 import * as THREE from 'three';
 
-import type { NetworkPlayer } from '../game/gameState';
+import type {
+  NetworkPlayer
+} from '../game/gameState';
 
-import { createPlayerModel } from '../player/playerModel';
+import {
+  createPlayerModel
+} from '../player/playerModel';
 
-import type { CombatTarget } from '../player/combat/bubbles';
+import type {
+  CombatTarget
+} from '../player/combat/bubbles';
 
 export class RemotePlayer
   implements CombatTarget {
@@ -12,6 +18,14 @@ export class RemotePlayer
   readonly id: string;
 
   readonly model: THREE.Group;
+
+  private readonly scene: THREE.Scene;
+
+  private readonly multiplayer: {
+    sendTrapPlayer(
+      targetId: string
+    ): void;
+  };
 
   private targetPosition =
     new THREE.Vector3();
@@ -24,21 +38,8 @@ export class RemotePlayer
       'YXZ'
     );
 
-  private multiplayer: {
-    sendTrapPlayer(
-      targetId: string
-    ): void;
-  };
-
   private trapped =
     false;
-
-  private trapBubble:
-    THREE.Mesh | null =
-    null;
-
-  private scene:
-    THREE.Scene;
 
   private trappedAt:
     number | null =
@@ -51,15 +52,12 @@ export class RemotePlayer
   private trapStartPosition =
     new THREE.Vector3();
 
-  /*
-   * True when THIS client fired
-   * the bubble that trapped this player.
-   *
-   * When true, Bubbles.ts owns the
-   * actual trapping bubble.
-   */
-  private localTrapPending =
-    false;
+  private trapTargetPosition =
+    new THREE.Vector3();
+
+  private trapBubble:
+    THREE.Mesh | null =
+    null;
 
   constructor(
     scene: THREE.Scene,
@@ -83,17 +81,10 @@ export class RemotePlayer
     this.model =
       createPlayerModel();
 
-    this.model.visible =
-      player.alive;
-
     this.model.position.set(
       player.x,
       player.y,
       player.z
-    );
-
-    this.targetPosition.copy(
-      this.model.position
     );
 
     this.model.rotation.set(
@@ -102,13 +93,22 @@ export class RemotePlayer
       0
     );
 
+    this.targetPosition.set(
+      player.x,
+      player.y,
+      player.z
+    );
+
     this.targetRotation.set(
       0,
       player.yaw,
       0
     );
 
-    scene.add(
+    this.model.visible =
+      player.alive;
+
+    this.scene.add(
       this.model
     );
 
@@ -117,11 +117,12 @@ export class RemotePlayer
     );
   }
 
-  // ==============================
+  // ========================================
   // COMBAT TARGET
-  // ==============================
+  // ========================================
 
-  getPosition(): THREE.Vector3 {
+  getPosition():
+    THREE.Vector3 {
 
     return this.model.position;
   }
@@ -150,63 +151,57 @@ export class RemotePlayer
       return false;
     }
 
-    /*
-     * Tell the server.
-     *
-     * The Bubbles instance that called
-     * this method remains responsible for
-     * the actual trapping bubble.
-     */
     this.multiplayer.sendTrapPlayer(
       this.id
     );
 
-    this.trapped =
-      true;
-
-    this.localTrapPending =
-      true;
-
+    /*
+     * Do NOT permanently make the
+     * remote player trapped here.
+     *
+     * The server must confirm it.
+     */
     return true;
   }
 
+  /*
+   * Kept for compatibility with
+   * existing Bubbles.ts code.
+   *
+   * The network/server state is now
+   * authoritative, so this does not
+   * override the server position.
+   */
   updateTrappedPosition(
     position: THREE.Vector3
   ): void {
 
-    /*
-     * Only the client that fired the
-     * trapping bubble updates this remote
-     * player's position from Bubbles.ts.
-     */
     if (
-      !this.trapped ||
-      !this.localTrapPending
+      !this.trapped
     ) {
       return;
     }
 
-    this.model.position.copy(
-      position
+    /*
+     * Only use this as a visual hint
+     * until the next network state.
+     */
+    this.model.position.lerp(
+      position,
+      0.35
     );
-
-    this.model.position.y -=
-      0.15;
   }
 
   onBubbleReachedSurface(): void {
 
     /*
-     * Do not release the player here.
-     *
-     * The server decides when the player
-     * actually drowns.
+     * Server controls drowning.
      */
   }
 
-  // ==============================
+  // ========================================
   // NETWORK STATE
-  // ==============================
+  // ========================================
 
   updateFromNetwork(
     player: NetworkPlayer
@@ -217,12 +212,10 @@ export class RemotePlayer
 
     /*
      * NORMAL MOVEMENT
-     *
-     * Do not overwrite the local
-     * trapping bubble's position.
      */
     if (
-      !this.trapped
+      !player.trapped &&
+      !player.isDrowned
     ) {
 
       this.targetPosition.set(
@@ -232,34 +225,50 @@ export class RemotePlayer
       );
     }
 
+    /*
+     * Rotation is always networked.
+     */
     this.targetRotation.set(
       0,
       player.yaw,
       0
     );
 
-    this.model.visible =
-      player.alive;
-
+    /*
+     * DROWNED
+     */
     if (
       player.isDrowned
     ) {
 
-      this.model.scale.setScalar(
-        1.15
-      );
+      this.trapped =
+        false;
 
-    } else {
+      this.trappedAt =
+        null;
 
-      this.model.scale.setScalar(
-        1
-      );
+      this.trapEndAt =
+        null;
+
+      this.removeTrapBubble();
+
+      this.model.visible =
+        false;
+
+      return;
     }
 
-    // ==========================
-    // NEW TRAP
-    // ==========================
+    /*
+     * ALIVE / VISIBLE
+     */
+    this.model.visible =
+      player.alive;
 
+    /*
+     * ======================================
+     * NEW TRAP
+     * ======================================
+     */
     if (
       player.trapped &&
       !wasTrapped
@@ -275,7 +284,8 @@ export class RemotePlayer
         player.trapEndAt;
 
       /*
-       * Save the position exactly once.
+       * The server sends the exact position
+       * where the trap started.
        */
       this.trapStartPosition.set(
         player.x,
@@ -284,51 +294,57 @@ export class RemotePlayer
       );
 
       /*
-       * IMPORTANT:
+       * Server's BUBBLE_POP_Y is:
        *
-       * If THIS client fired the trap,
-       * Bubbles.ts already created and owns
-       * the trapping bubble.
-       *
-       * Otherwise this client needs its
-       * own synchronized visual bubble.
+       * SURFACE_Y 30
+       * + POP_HEIGHT 2.5
+       * - CENTER_OFFSET 1.5
+       * = 31
        */
-      if (
-        !this.localTrapPending
-      ) {
+      this.trapTargetPosition.set(
+        player.x,
+        31,
+        player.z
+      );
 
-        this.createRemoteTrapBubble();
-      }
+      this.targetPosition.copy(
+        this.trapStartPosition
+      );
+
+      this.createRemoteTrapBubble();
 
       this.model.visible =
         true;
+
+      return;
     }
 
-    // ==========================
-    // ALREADY TRAPPED
-    // ==========================
-
+    /*
+     * ======================================
+     * ALREADY TRAPPED
+     * ======================================
+     */
     if (
-      player.trapped &&
-      wasTrapped
+      player.trapped
     ) {
 
-      /*
-       * Keep server timing synchronized.
-       *
-       * Never reset trapStartPosition.
-       */
+      this.trapped =
+        true;
+
       this.trappedAt =
         player.trappedAt;
 
       this.trapEndAt =
         player.trapEndAt;
+
+      return;
     }
 
-    // ==========================
-    // NO LONGER TRAPPED
-    // ==========================
-
+    /*
+     * ======================================
+     * RELEASED / DROWNED
+     * ======================================
+     */
     if (
       !player.trapped &&
       wasTrapped
@@ -337,64 +353,43 @@ export class RemotePlayer
       this.trapped =
         false;
 
-      this.localTrapPending =
-        false;
-
-      this.removeTrapBubble();
-
       this.trappedAt =
         null;
 
       this.trapEndAt =
         null;
 
+      this.removeTrapBubble();
+
+      /*
+       * If the player is alive again,
+       * resume normal network movement.
+       */
       if (
-        player.isDrowned
+        player.alive
       ) {
+
+        this.targetPosition.set(
+          player.x,
+          player.y,
+          player.z
+        );
+
+      } else {
 
         this.model.visible =
           false;
       }
     }
-
-    // ==========================
-    // DROWNED
-    // ==========================
-
-    if (
-      player.isDrowned
-    ) {
-
-      this.trapped =
-        false;
-
-      this.localTrapPending =
-        false;
-
-      this.removeTrapBubble();
-
-      this.trappedAt =
-        null;
-
-      this.trapEndAt =
-        null;
-
-      this.model.visible =
-        false;
-    }
   }
 
-  // ==============================
-  // REMOTE VISUAL BUBBLE
-  // ==============================
+  // ========================================
+  // REMOTE TRAP BUBBLE
+  // ========================================
 
   private createRemoteTrapBubble(): void {
 
-    if (
-      this.trapBubble
-    ) {
-      return;
-    }
+    this.removeTrapBubble();
 
     const geometry =
       new THREE.SphereGeometry(
@@ -410,7 +405,7 @@ export class RemotePlayer
         roughness: 0,
         metalness: 0,
         transmission: 0.85,
-        thickness: 0.2,
+        thickness: 0.2
       });
 
     this.trapBubble =
@@ -447,11 +442,13 @@ export class RemotePlayer
       Array.isArray(material)
     ) {
 
-      material.forEach(
-        (item) => {
-          item.dispose();
-        }
-      );
+      for (
+        const item
+        of material
+      ) {
+
+        item.dispose();
+      }
 
     } else {
 
@@ -462,104 +459,48 @@ export class RemotePlayer
       null;
   }
 
-  // ==============================
-  // MOVEMENT
-  // ==============================
+  // ========================================
+  // UPDATE
+  // ========================================
 
   update(
     delta: number
   ): void {
 
     /*
-     * ATTACKER CLIENT
+     * ======================================
+     * TRAPPED
+     * ======================================
      *
-     * Bubbles.ts owns the bubble and
-     * directly moves this RemotePlayer.
+     * Calculate the position directly from
+     * server timestamps.
+     *
+     * This means every client sees the
+     * player rising on the same timeline.
      */
     if (
-      this.trapped &&
-      this.localTrapPending
-    ) {
-      return;
-    }
-
-    // ==========================
-    // REMOTE OBSERVER
-    // ==========================
-
-    if (
-      this.trapped &&
-      this.trapBubble
+      this.trapped
     ) {
 
-      const now =
-        Date.now();
-
-      let progress =
-        0;
-
-      if (
-        this.trappedAt !== null &&
-        this.trapEndAt !== null &&
-        this.trapEndAt >
-          this.trappedAt
-      ) {
-
-        progress =
-          THREE.MathUtils.clamp(
-            (
-              now -
-              this.trappedAt
-            ) /
-            (
-              this.trapEndAt -
-              this.trappedAt
-            ),
-            0,
-            1
-          );
-      }
-
-      /*
-       * Keep X/Z fixed at the server's
-       * original trap position.
-       */
-      this.trapBubble.position.x =
-        this.trapStartPosition.x;
-
-      this.trapBubble.position.z =
-        this.trapStartPosition.z;
-
-      /*
-       * Use the exact same server
-       * timestamps as the victim.
-       */
-      this.trapBubble.position.y =
-        THREE.MathUtils.lerp(
-          this.trapStartPosition.y,
-          31,
-          progress
-        );
-
-      this.model.position.copy(
-        this.trapBubble.position
-      );
-
-      this.model.position.y -=
-        0.15;
+      this.updateTrapAnimation();
 
       return;
     }
 
-    // ==========================
-    // NORMAL MOVEMENT
-    // ==========================
+    /*
+     * ======================================
+     * NORMAL MOVEMENT
+     * ======================================
+     */
 
     const smoothing =
       1 -
       Math.pow(
         0.001,
-        delta
+        Math.max(
+          delta,
+          0.001
+        )
       );
 
     this.model.position.lerp(
@@ -575,9 +516,75 @@ export class RemotePlayer
       );
   }
 
-  // ==============================
-  // REMOVE
-  // ==============================
+  // ========================================
+  // TRAP ANIMATION
+  // ========================================
+
+  private updateTrapAnimation(): void {
+
+    if (
+      this.trappedAt === null ||
+      this.trapEndAt === null
+    ) {
+      return;
+    }
+
+    const duration =
+      this.trapEndAt -
+      this.trappedAt;
+
+    if (
+      duration <= 0
+    ) {
+      return;
+    }
+
+    const now =
+      Date.now();
+
+    const progress =
+      THREE.MathUtils.clamp(
+        (
+          now -
+          this.trappedAt
+        ) /
+        duration,
+        0,
+        1
+      );
+
+    /*
+     * Interpolate from the exact server
+     * trap position to the surface.
+     */
+    const y =
+      THREE.MathUtils.lerp(
+        this.trapStartPosition.y,
+        this.trapTargetPosition.y,
+        progress
+      );
+
+    this.model.position.set(
+      this.trapStartPosition.x,
+      y - 0.15,
+      this.trapStartPosition.z
+    );
+
+    if (
+      this.trapBubble
+    ) {
+
+      this.trapBubble.position.set(
+        this.trapStartPosition.x,
+        y,
+        this.trapStartPosition.z
+      );
+    }
+  }
+
+  // ========================================
+  // DESTROY
+  // ========================================
 
   destroy(): void {
 
@@ -605,11 +612,13 @@ export class RemotePlayer
           Array.isArray(material)
         ) {
 
-          material.forEach(
-            (item) => {
-              item.dispose();
-            }
-          );
+          for (
+            const item
+            of material
+          ) {
+
+            item.dispose();
+          }
 
         } else if (
           material
