@@ -21,6 +21,7 @@ export interface GameWorldControllerDependencies {
 export function createGameWorldController(
   dependencies: GameWorldControllerDependencies
 ): GameWorldController {
+
   const {
     scene,
     player,
@@ -42,6 +43,7 @@ export function createGameWorldController(
   const updateWaterAndSky = (
     delta: number
   ): void => {
+
     const ocean =
       worldManager.getOcean();
 
@@ -62,12 +64,15 @@ export function createGameWorldController(
     if (
       aboveWater
     ) {
+
       scene.background =
         aboveWaterColor;
 
       scene.fog =
         null;
+
     } else {
+
       scene.background =
         underwaterColor;
 
@@ -106,19 +111,51 @@ export function createGameWorldController(
   };
 
   return {
+
     update(delta: number): void {
+
+      /*
+       * Update the player first.
+       *
+       * This handles:
+       * - normal movement
+       * - first-person camera
+       * - trapped player positioning
+       * - trapped camera
+       * - death camera
+       */
+      player.update(
+        delta
+      );
+
+      /*
+       * Keep the player from moving through
+       * rocks during normal gameplay.
+       */
       updateRockCollisions(
         player.camera,
         worldManager.getRocks()
       );
 
+      /*
+       * Update underwater environment,
+       * water shader, fog, particles, etc.
+       */
       updateWaterAndSky(
         delta
       );
 
+      /*
+       * The actual environmental flashlight
+       * continues following the camera.
+       *
+       * This is separate from the tadpole's
+       * visual flashlight beams.
+       */
       if (
         !gameState.playerDead
       ) {
+
         updateFlashlight(
           player.camera,
           flashlight,

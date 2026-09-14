@@ -17,7 +17,8 @@ import {
 } from './playerDeath';
 
 import {
-  createPlayerModel
+  createPlayerModel,
+  setPlayerFlashlightVisible
 } from './playerModel';
 
 import {
@@ -77,6 +78,7 @@ export class Player {
    * These are primarily used when this
    * client is the trapped player.
    */
+
   private trappedAt:
     number | null =
     null;
@@ -114,6 +116,11 @@ export class Player {
     this.model =
       createPlayerModel();
 
+    /*
+     * The local tadpole is normally hidden
+     * because the player sees through the
+     * first-person camera.
+     */
     this.model.visible =
       false;
 
@@ -165,6 +172,9 @@ export class Player {
     delta: number
   ): void {
 
+    /*
+     * Death takes priority over everything.
+     */
     if (
       this.death.active
     ) {
@@ -180,6 +190,11 @@ export class Player {
       return;
     }
 
+    /*
+     * While trapped, stop normal movement
+     * and keep the tadpole inside the
+     * trapping bubble.
+     */
     if (
       this.isFrozen
     ) {
@@ -191,10 +206,24 @@ export class Player {
       return;
     }
 
+    /*
+     * Normal first-person gameplay.
+     */
     this.cameraSystem.updateFirstPerson();
 
     this.movement.update(
       delta
+    );
+
+    /*
+     * Keep the tadpole model facing the
+     * same direction as the camera.
+     */
+    this.model.rotation.set(
+      this.controls.pitch,
+      this.controls.yaw,
+      0,
+      'YXZ'
     );
   }
 
@@ -253,8 +282,8 @@ export class Player {
       targets
     );
   }
-  
-    setBubbleFiredListener(
+
+  setBubbleFiredListener(
     listener:
       ((
         position: THREE.Vector3,
@@ -279,7 +308,7 @@ export class Player {
       velocity
     );
   }
-  
+
   getAttackCooldown(): number {
 
     return this.attack.cooldownRemaining;
@@ -289,74 +318,44 @@ export class Player {
   // TRAPPED
   // ==============================
 
-  private getPlayerCenter():
-    THREE.Vector3 {
-
-    this.model.updateWorldMatrix(
-      true,
-      true
-    );
-
-    const box:
-      THREE.Box3 =
-      new THREE.Box3();
-
-    box.setFromObject(
-      this.model
-    );
-
-    const center:
-      THREE.Vector3 =
-      new THREE.Vector3();
-
-    box.getCenter(
-      center
-    );
-
-    return center;
-  }
-
-  private setPlayerCenter(
-    position: THREE.Vector3
-  ): void {
-
-    const currentCenter:
-      THREE.Vector3 =
-      this.getPlayerCenter();
-
-    this.model.position.x +=
-      position.x -
-      currentCenter.x;
-
-    this.model.position.y +=
-      position.y -
-      currentCenter.y;
-
-    this.model.position.z +=
-      position.z -
-      currentCenter.z;
-  }
-
   private updateTrappedPlayer(): void {
 
     const bubble:
       THREE.Mesh | null =
       this.cameraSystem.getTrappedBubble();
 
+    /*
+     * There is no trapped bubble yet.
+     * Keep the current model position rather
+     * than hiding the player.
+     */
     if (
       !bubble
     ) {
       return;
     }
 
-    this.setPlayerCenter(
+    /*
+     * Put the tadpole directly at the center
+     * of the trapping bubble.
+     *
+     * This is intentionally position.copy()
+     * rather than calculating the model's
+     * bounding-box center every frame.
+     */
+    this.model.position.copy(
       bubble.position
     );
 
+    /*
+     * Keep the tadpole facing the direction
+     * the player was looking when trapped.
+     */
     this.model.rotation.set(
-      0,
+      this.controls.pitch,
       this.controls.yaw,
-      0
+      0,
+      'YXZ'
     );
   }
 
@@ -373,13 +372,27 @@ export class Player {
       trapped
     ) {
 
+      /*
+       * The tadpole MUST be visible while
+       * trapped because the camera moves
+       * outside the player.
+       */
       this.model.visible =
         true;
 
       /*
-       * Trap timing is ultimately
-       * controlled by the server in
-       * multiplayer.
+       * Hide only the flashlight beams.
+       * Do not hide the tadpole itself.
+       */
+      setPlayerFlashlightVisible(
+        this.model,
+        false
+      );
+
+      /*
+       * Record the local trap start time
+       * if one has not already been supplied
+       * by multiplayer.
        */
       if (
         this.trappedAt === null
@@ -389,20 +402,64 @@ export class Player {
           Date.now();
       }
 
+      /*
+       * Give PlayerCamera the actual bubble
+       * so it can position the trapped camera
+       * around it.
+       */
       this.cameraSystem.setTrapped(
         bubble
       );
 
+      /*
+       * Immediately place the tadpole at the
+       * bubble instead of waiting for the next
+       * update frame.
+       */
+      if (
+        bubble
+      ) {
+
+        this.model.position.copy(
+          bubble.position
+        );
+
+        this.model.rotation.set(
+          this.controls.pitch,
+          this.controls.yaw,
+          0,
+          'YXZ'
+        );
+      }
+
     } else {
 
+      /*
+       * Clear local trap timing.
+       */
       this.trappedAt =
         null;
 
       this.trapEndAt =
         null;
 
+      /*
+       * Restore flashlight beams.
+       */
+      setPlayerFlashlightVisible(
+        this.model,
+        true
+      );
+
+      /*
+       * Remove the trapped camera state.
+       */
       this.cameraSystem.clearTrapped();
 
+      /*
+       * Hide the local first-person tadpole
+       * again after being released.
+       */
       this.model.visible =
         false;
     }

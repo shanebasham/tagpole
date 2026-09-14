@@ -1,6 +1,10 @@
 import * as THREE from 'three';
 import './style.css';
 
+import {
+  setPlayerFlashlightVisible
+} from '../player/playerModel';
+
 export class MainMenu {
 
   private container: HTMLDivElement;
@@ -161,7 +165,15 @@ export class MainMenu {
       'menu-tadpole-renderer';
 
     this.tadpoleModel =
-      tadpoleModel.clone(true);
+        tadpoleModel.clone(true);
+
+    setPlayerFlashlightVisible(
+        this.tadpoleModel,
+        false
+    );
+
+    this.tadpoleModel.visible =
+        true;
 
     this.tadpoleModel.visible =
       true;
