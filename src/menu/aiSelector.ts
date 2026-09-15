@@ -25,9 +25,6 @@ export class AISelector {
   /*
    * MENU-ONLY positions.
    *
-   * These positions have nothing to do with
-   * actual game-world spawn positions.
-   *
    * 0  = player at 12 o'clock
    * 1  = 1 o'clock
    * 2  = 2 o'clock
@@ -68,7 +65,11 @@ export class AISelector {
   private readonly tadpoleRadius = 170;
 
   /*
-   * Distance of the arrow from the center.
+   * Desktop arrow distance.
+   *
+   * Mobile uses a responsive distance in
+   * positionArrow() so the arrow stays close
+   * to the smaller mobile selector ring.
    */
   private readonly arrowRadius = 225;
 
@@ -116,6 +117,12 @@ export class AISelector {
       this.endDrag();
     };
 
+  private readonly handleResize =
+    (): void => {
+
+      this.positionArrow();
+    };
+
   constructor(
     scene: THREE.Scene,
     sourceModel: THREE.Group,
@@ -134,6 +141,11 @@ export class AISelector {
 
     this.updateVisuals();
     this.attachPointerEvents();
+
+    window.addEventListener(
+      'resize',
+      this.handleResize
+    );
   }
 
   // ==============================
@@ -387,7 +399,9 @@ export class AISelector {
       nextCount ===
       this.selectedCount
     ) {
+
       this.updateVisuals();
+
       return;
     }
 
@@ -455,20 +469,6 @@ export class AISelector {
       return;
     }
 
-    /*
-     * The arrow represents the next position
-     * that can be selected.
-     *
-     * Count 0  -> 12 o'clock
-     * Count 1  -> 1 o'clock
-     * Count 2  -> 2 o'clock
-     * ...
-     * Count 11 -> 11 o'clock
-     *
-     * There is intentionally NO modulo here.
-     * This prevents the arrow from wrapping
-     * around the clock.
-     */
     const positionIndex =
       THREE.MathUtils.clamp(
         this.selectedCount,
@@ -481,13 +481,53 @@ export class AISelector {
       Math.PI *
       2;
 
+    /*
+     * Desktop:
+     *
+     * 225px from center.
+     *
+     * Mobile:
+     *
+     * The selector ring becomes smaller,
+     * so the arrow needs to move closer.
+     */
+    const isMobile =
+      window.innerWidth <= 700;
+
+    const isPortrait =
+      window.innerHeight >
+      window.innerWidth;
+
+    let arrowRadius =
+      this.arrowRadius;
+
+    if (isMobile) {
+
+      if (isPortrait) {
+
+        arrowRadius =
+          Math.min(
+            175,
+            window.innerWidth * 0.42
+          );
+
+      } else {
+
+        arrowRadius =
+          Math.min(
+            175,
+            window.innerHeight * 0.42
+          );
+      }
+    }
+
     const x =
       Math.sin(angle) *
-      this.arrowRadius;
+      arrowRadius;
 
     const y =
       -Math.cos(angle) *
-      this.arrowRadius;
+      arrowRadius;
 
     /*
      * The double-sided arrow stays tangent
@@ -643,8 +683,6 @@ export class AISelector {
       );
 
     /*
-     * This means:
-     *
      * Drag clockwise:
      * 0 -> 1 -> 2 -> ... -> 11
      *
@@ -796,6 +834,11 @@ export class AISelector {
   destroy(): void {
 
     this.endDrag();
+
+    window.removeEventListener(
+      'resize',
+      this.handleResize
+    );
 
     window.removeEventListener(
       'pointermove',
