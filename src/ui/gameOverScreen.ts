@@ -8,7 +8,8 @@ export type DeathScreenMode =
 export function createDeathScreen(
   onSpectate: () => void,
   onReturnToLobby: () => void,
-  onPlayAgain: () => void
+  onPlayAgain: () => void,
+  lockPointer: () => void
 ) {
   const deathScreen =
     document.createElement('div');
@@ -80,6 +81,8 @@ export function createDeathScreen(
       );
 
       onSpectate();
+
+      lockPointer();
     }
   );
 
@@ -92,6 +95,8 @@ export function createDeathScreen(
       );
 
       onPlayAgain();
+
+      lockPointer();
     }
   );
 

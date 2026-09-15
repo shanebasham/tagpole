@@ -5,12 +5,24 @@ import type {
 } from '../../game/gameState';
 
 export interface LocalTrapBubble {
-  mesh: THREE.Mesh;
-  startTime: number;
-  endTime: number;
-  startX: number;
-  startY: number;
-  startZ: number;
+
+  mesh:
+    THREE.Mesh;
+
+  startTime:
+    number;
+
+  endTime:
+    number;
+
+  startX:
+    number;
+
+  startY:
+    number;
+
+  startZ:
+    number;
 }
 
 export function createLocalTrapBubble(
@@ -41,6 +53,13 @@ export function createLocalTrapBubble(
       material
     );
 
+  /*
+   * Keep the multiplayer bubble centered
+   * on the player's network position.
+   *
+   * The local Player model itself is offset
+   * forward while trapped.
+   */
   mesh.position.set(
     player.x,
     player.y,
@@ -52,6 +71,7 @@ export function createLocalTrapBubble(
   );
 
   return {
+
     mesh,
 
     startTime:
@@ -114,10 +134,13 @@ export function updateLocalTrapBubble(
 }
 
 export function clearLocalTrapBubble(
-  trap: LocalTrapBubble | null
+  trap:
+    LocalTrapBubble | null
 ): void {
 
-  if (!trap) {
+  if (
+    !trap
+  ) {
     return;
   }
 

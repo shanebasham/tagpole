@@ -72,12 +72,9 @@ export class Player {
   private attack:
     Attack;
 
-  /*
-   * Multiplayer trap timing.
-   *
-   * These are primarily used when this
-   * client is the trapped player.
-   */
+  getYaw(): number {
+    return this.controls.yaw;
+  }
 
   private trappedAt:
     number | null =
@@ -116,11 +113,6 @@ export class Player {
     this.model =
       createPlayerModel();
 
-    /*
-     * The local tadpole is normally hidden
-     * because the player sees through the
-     * first-person camera.
-     */
     this.model.visible =
       false;
 
@@ -172,9 +164,6 @@ export class Player {
     delta: number
   ): void {
 
-    /*
-     * Death takes priority over everything.
-     */
     if (
       this.death.active
     ) {
@@ -190,11 +179,6 @@ export class Player {
       return;
     }
 
-    /*
-     * While trapped, stop normal movement
-     * and keep the tadpole inside the
-     * trapping bubble.
-     */
     if (
       this.isFrozen
     ) {
@@ -206,19 +190,12 @@ export class Player {
       return;
     }
 
-    /*
-     * Normal first-person gameplay.
-     */
     this.cameraSystem.updateFirstPerson();
 
     this.movement.update(
       delta
     );
 
-    /*
-     * Keep the tadpole model facing the
-     * same direction as the camera.
-     */
     this.model.rotation.set(
       this.controls.pitch,
       this.controls.yaw,
@@ -319,157 +296,78 @@ export class Player {
   // ==============================
 
   private updateTrappedPlayer(): void {
+  const bubble =
+    this.cameraSystem.getTrappedBubble();
 
-    const bubble:
-      THREE.Mesh | null =
-      this.cameraSystem.getTrappedBubble();
-
-    /*
-     * There is no trapped bubble yet.
-     * Keep the current model position rather
-     * than hiding the player.
-     */
-    if (
-      !bubble
-    ) {
-      return;
-    }
-
-    /*
-     * Put the tadpole directly at the center
-     * of the trapping bubble.
-     *
-     * This is intentionally position.copy()
-     * rather than calculating the model's
-     * bounding-box center every frame.
-     */
-    this.model.position.copy(
-      bubble.position
-    );
-
-    /*
-     * Keep the tadpole facing the direction
-     * the player was looking when trapped.
-     */
-    this.model.rotation.set(
-      this.controls.pitch,
-      this.controls.yaw,
-      0,
-      'YXZ'
-    );
+  if (!bubble) {
+    return;
   }
+
+  this.model.position.copy(
+    bubble.position
+  );
+
+  this.model.position.y -= 0.15;
+
+  this.model.rotation.set(
+    this.controls.pitch,
+    this.controls.yaw,
+    0,
+    'YXZ'
+  );
+}
 
   setTrapped(
-    trapped: boolean,
-    bubble:
-      THREE.Mesh | null = null
-  ): void {
+  trapped: boolean,
+  bubble: THREE.Mesh | null = null
+): void {
 
-    this.isFrozen =
-      trapped;
+  this.isFrozen =
+    trapped;
+
+  if (trapped) {
+
+    this.model.visible =
+      true;
+
+    setPlayerFlashlightVisible(
+      this.model,
+      false
+    );
 
     if (
-      trapped
+      this.trappedAt === null
     ) {
-
-      /*
-       * The tadpole MUST be visible while
-       * trapped because the camera moves
-       * outside the player.
-       */
-      this.model.visible =
-        true;
-
-      /*
-       * Hide only the flashlight beams.
-       * Do not hide the tadpole itself.
-       */
-      setPlayerFlashlightVisible(
-        this.model,
-        false
-      );
-
-      /*
-       * Record the local trap start time
-       * if one has not already been supplied
-       * by multiplayer.
-       */
-      if (
-        this.trappedAt === null
-      ) {
-
-        this.trappedAt =
-          Date.now();
-      }
-
-      /*
-       * Give PlayerCamera the actual bubble
-       * so it can position the trapped camera
-       * around it.
-       */
-      this.cameraSystem.setTrapped(
-        bubble
-      );
-
-      /*
-       * Immediately place the tadpole at the
-       * bubble instead of waiting for the next
-       * update frame.
-       */
-      if (
-        bubble
-      ) {
-
-        this.model.position.copy(
-          bubble.position
-        );
-
-        this.model.rotation.set(
-          this.controls.pitch,
-          this.controls.yaw,
-          0,
-          'YXZ'
-        );
-      }
-
-    } else {
-
-      /*
-       * Clear local trap timing.
-       */
       this.trappedAt =
-        null;
-
-      this.trapEndAt =
-        null;
-
-      /*
-       * Restore flashlight beams.
-       */
-      setPlayerFlashlightVisible(
-        this.model,
-        true
-      );
-
-      /*
-       * Remove the trapped camera state.
-       */
-      this.cameraSystem.clearTrapped();
-
-      /*
-       * Hide the local first-person tadpole
-       * again after being released.
-       */
-      this.model.visible =
-        false;
+        Date.now();
     }
-  }
 
-  /*
-   * Allows multiplayer code to give
-   * the local player the exact server
-   * trap timing.
-   */
+    this.cameraSystem.setTrapped(
+      bubble
+    );
+
+    this.updateTrappedPlayer();
+
+  } else {
+
+    this.trappedAt =
+      null;
+
+    this.trapEndAt =
+      null;
+
+    setPlayerFlashlightVisible(
+      this.model,
+      true
+    );
+
+    this.cameraSystem.clearTrapped();
+
+    this.model.visible =
+      false;
+  }
+}
+
   setNetworkTrapTiming(
     trappedAt:
       number | null,
@@ -544,11 +442,6 @@ export class Player {
       pitch:
         this.controls.pitch,
 
-      /*
-       * Movement is currently driven
-       * directly by position, so these
-       * remain zero.
-       */
       vx:
         0,
 

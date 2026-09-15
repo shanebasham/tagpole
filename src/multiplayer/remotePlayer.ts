@@ -16,11 +16,14 @@ import type {
 export class RemotePlayer
   implements CombatTarget {
 
-  readonly id: string;
+  readonly id:
+    string;
 
-  readonly model: THREE.Group;
+  readonly model:
+    THREE.Group;
 
-  private readonly scene: THREE.Scene;
+  private readonly scene:
+    THREE.Scene;
 
   private readonly multiplayer: {
     sendTrapPlayer(
@@ -525,6 +528,39 @@ export class RemotePlayer
   }
 
   // ========================================
+  // TRAPPED MODEL OFFSET
+  // ========================================
+
+  private getTrappedModelOffset():
+    THREE.Vector3 {
+
+    /*
+     * The tadpole faces -Z.
+     *
+     * Its tail is positioned toward +Z.
+     *
+     * Move the entire tadpole forward
+     * so the tail sits farther inside
+     * the trapping bubble.
+     */
+
+    const forward =
+      new THREE.Vector3(
+        -Math.sin(
+          this.targetRotation.y
+        ),
+        0,
+        -Math.cos(
+          this.targetRotation.y
+        )
+      );
+
+    return forward.multiplyScalar(
+      0.5
+    );
+  }
+
+  // ========================================
   // UPDATE
   // ========================================
 
@@ -652,11 +688,10 @@ export class RemotePlayer
         progress
       );
 
-    this.model.position.set(
-      this.trapStartPosition.x,
-      y - 0.15,
-      this.trapStartPosition.z
-    );
+    /*
+     * Keep the bubble centered on the
+     * server's trap position.
+     */
 
     if (
       this.trapBubble
@@ -668,6 +703,26 @@ export class RemotePlayer
         this.trapStartPosition.z
       );
     }
+
+    /*
+     * Move the tadpole slightly forward
+     * inside the bubble.
+     *
+     * The -0.15 vertical offset keeps the
+     * tadpole centered slightly below the
+     * bubble's center.
+     */
+
+    const offset =
+      this.getTrappedModelOffset();
+
+    this.model.position.set(
+      this.trapStartPosition.x +
+        offset.x,
+      y - 0.15,
+      this.trapStartPosition.z +
+        offset.z
+    );
   }
 
   // ========================================

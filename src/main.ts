@@ -6,6 +6,7 @@ import './debug/errorCatcher';
 import { gameState } from './game/gameState';
 import { GameFlow } from './game/gameFlow';
 import { GameLoop } from './game/gameLoop';
+import { getRandomSpawnPositions } from './game/spawnPositions';
 
 import { createCombatController } from './player/combat/combatController';
 import { createGameWorldController } from './game/gameWorldController';
@@ -363,7 +364,10 @@ aiManager = new AIManager(
 
 gameFlow = new GameFlow({
 
-  onStartAI: () => {
+  onStartAI: (
+    aiCount
+  ) => {
+
     clearCurrentLocalTrap();
 
     multiplayerGame.stop();
@@ -374,9 +378,47 @@ gameFlow = new GameFlow({
       false
     );
 
-    player.model.visible = false;
+    player.model.visible =
+      false;
 
-    aiManager.create();
+    // ==============================
+    // RANDOM CLOCK SPAWNS
+    // ==============================
+
+    const spawnPositions =
+      getRandomSpawnPositions(
+        aiCount + 1
+      );
+
+    // Human gets the first
+    // randomly selected position.
+
+    player.model.position.copy(
+      spawnPositions[0]
+    );
+
+    player.camera.position.set(
+      spawnPositions[0].x,
+      spawnPositions[0].y,
+      spawnPositions[0].z
+    );
+
+    player.camera.rotation.set(
+      0,
+      0,
+      0
+    );
+
+    player.camera.rotation.order =
+      'YXZ';
+
+    // AI receives positions 1+
+    // from the exact same shuffled list.
+
+    aiManager.create(
+      aiCount,
+      spawnPositions
+    );
 
     hud.setAlive(
       true
@@ -492,7 +534,37 @@ gameFlow = new GameFlow({
 
     worldManager.reset();
 
-    aiManager.create();
+    const aiCount =
+      gameFlow.getAICount();
+
+    const spawnPositions =
+      getRandomSpawnPositions(
+        aiCount + 1
+      );
+
+    player.model.position.copy(
+      spawnPositions[0]
+    );
+
+    player.camera.position.set(
+      spawnPositions[0].x,
+      spawnPositions[0].y,
+      spawnPositions[0].z
+    );
+
+    player.camera.rotation.set(
+      0,
+      0,
+      0
+    );
+
+    player.camera.rotation.order =
+      'YXZ';
+
+    aiManager.create(
+      aiCount,
+      spawnPositions
+    );
 
     hud.setAlive(
       true
@@ -587,9 +659,12 @@ gameFlow = new GameFlow({
 
 mainMenu = new MainMenu(
   player.model,
-
-  () => {
-    gameFlow.startAI();
+  (
+    aiCount
+  ) => {
+    gameFlow.startAI(
+      aiCount
+    );
   },
 
   () => {
@@ -619,8 +694,6 @@ deathScreen =
   createDeathScreen(
 
     () => {
-      pointerLock.unlock();
-
       gameState.playerDead =
         true;
 
@@ -652,6 +725,10 @@ deathScreen =
 
     () => {
       gameFlow.playAgain();
+    },
+
+    () => {
+      pointerLock.lock();
     }
   );
 
@@ -661,7 +738,9 @@ deathScreen =
 
 pauseMenu =
   createPauseMenu({
+
     onResume: () => {
+
       if (
         !gameState.started ||
         gameState.playerDead ||
@@ -671,12 +750,31 @@ pauseMenu =
       }
 
       gameFlow.resume();
+
+      pointerLock.lock();
     },
 
     onExit: () => {
       gameFlow.returnToMenu();
     },
+
   });
+
+  pointerLock.onUnexpectedUnlock(
+  () => {
+
+    if (
+      !gameState.started ||
+      gameState.playerDead ||
+      gameState.aiRoundOver ||
+      pauseMenu.isVisible()
+    ) {
+      return;
+    }
+
+    pauseMenu.show();
+  }
+);
 
 // ==============================
 // PLAYER CONTROLLER
@@ -705,7 +803,6 @@ const playerController =
 
 createInputManager(
   player,
-  gameFlow,
   pauseMenu
 );
 
@@ -800,7 +897,9 @@ const shouldStartAI =
 if (
   shouldStartAI
 ) {
-  gameFlow.startAI();
+  gameFlow.startAI(
+    gameFlow.getAICount()
+  );
 
   combatController.updateCombatTargets();
 }

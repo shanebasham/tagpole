@@ -12,6 +12,10 @@ import {
   AITadpole
 } from './aiTadpole';
 
+import {
+  getRandomSpawnPositions
+} from '../../game/spawnPositions';
+
 // ==============================
 // CALLBACKS
 // ==============================
@@ -48,40 +52,6 @@ export class AIManager {
   private tadpoles:
     AITadpole[] = [];
 
-  private spawnPositions:
-    THREE.Vector3[] = [
-
-      new THREE.Vector3(
-        15,
-        -5,
-        -15
-      ),
-
-      new THREE.Vector3(
-        -20,
-        -8,
-        -20
-      ),
-
-      new THREE.Vector3(
-        20,
-        -10,
-        15
-      ),
-
-      new THREE.Vector3(
-        -25,
-        -12,
-        20
-      ),
-
-      new THREE.Vector3(
-        0,
-        -18,
-        30
-      ),
-    ];
-
   // ==============================
   // CONSTRUCTOR
   // ==============================
@@ -110,14 +80,38 @@ export class AIManager {
   // CREATE
   // ==============================
 
-  create(): void {
+    create(
+    count: number = 11,
+    spawnPositions?: THREE.Vector3[]
+    ): void {
 
     this.clear();
 
+    const aiCount =
+      THREE.MathUtils.clamp(
+        Math.floor(count),
+        1,
+        11
+      );
+
+    // We need one spawn for the human
+    // and one spawn for every AI.
+    const positions =
+      spawnPositions ??
+        getRandomSpawnPositions(
+            aiCount + 1
+        );
+
+    // Position 0 belongs to the human.
+    // AI starts at position 1.
     for (
-      const position of
-        this.spawnPositions
-    ) {
+      let i = 1;
+        i < positions.length;
+        i++
+        ) {
+
+      const position =
+            positions[i];
 
       const ai =
         new AITadpole(

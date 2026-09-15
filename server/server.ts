@@ -40,6 +40,96 @@ const MAX_PLAYERS =
   12;
 
 // ========================================
+// SPAWN POSITIONS
+// ========================================
+
+const SPAWN_RADIUS =
+  30;
+
+const SPAWN_Y =
+  -10;
+
+interface SpawnPosition {
+  x: number;
+  y: number;
+  z: number;
+}
+
+function createSpawnPositions():
+  SpawnPosition[] {
+
+  const positions:
+    SpawnPosition[] = [];
+
+  for (
+    let i = 0;
+    i < MAX_PLAYERS;
+    i++
+  ) {
+
+    const angle =
+      (
+        i /
+        MAX_PLAYERS
+      ) *
+      Math.PI *
+      2;
+
+    positions.push({
+      x:
+        Math.sin(angle) *
+        SPAWN_RADIUS,
+
+      y:
+        SPAWN_Y,
+
+      z:
+        -Math.cos(angle) *
+        SPAWN_RADIUS,
+    });
+  }
+
+  return positions;
+}
+
+function shuffleSpawnPositions(
+  positions: SpawnPosition[]
+):
+  SpawnPosition[] {
+
+  const shuffled =
+    positions.map(
+      (position) => ({
+        ...position,
+      })
+    );
+
+  for (
+    let i =
+      shuffled.length - 1;
+    i > 0;
+    i--
+  ) {
+
+    const j =
+      Math.floor(
+        Math.random() *
+        (i + 1)
+      );
+
+    [
+      shuffled[i],
+      shuffled[j]
+    ] = [
+      shuffled[j],
+      shuffled[i]
+    ];
+  }
+
+  return shuffled;
+}
+
+// ========================================
 // TYPES
 // ========================================
 
@@ -502,6 +592,11 @@ function resetPlayers(
   room: Room
 ): void {
 
+  const spawnPositions =
+    shuffleSpawnPositions(
+      createSpawnPositions()
+    );
+
   let index =
     0;
 
@@ -510,14 +605,19 @@ function resetPlayers(
     room.players.values()
   ) {
 
+    const spawn =
+      spawnPositions[
+        index
+      ];
+
     player.x =
-      index * 4;
+      spawn.x;
 
     player.y =
-      0;
+      spawn.y;
 
     player.z =
-      10;
+      spawn.z;
 
     player.yaw =
       0;
@@ -560,6 +660,10 @@ function resetPlayers(
 
     index++;
   }
+
+  console.log(
+    `[${room.code}] Spawned ${room.players.size} players across random clock positions`
+  );
 }
 
 // ========================================

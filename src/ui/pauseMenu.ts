@@ -11,15 +11,21 @@ export interface PauseMenu {
   destroy(): void;
 }
 
-export function createPauseMenu(callbacks: PauseMenuCallbacks): PauseMenu {
+export function createPauseMenu(
+  callbacks: PauseMenuCallbacks
+): PauseMenu {
+
   let visible = false;
 
-  const menu = document.createElement('div');
+  const menu =
+    document.createElement('div');
 
-  menu.id = 'exit-menu';
+  menu.id =
+    'exit-menu';
 
   menu.innerHTML = `
     <div id="exit-menu-panel">
+
       <div id="exit-menu-title">
         PAUSED
       </div>
@@ -29,18 +35,29 @@ export function createPauseMenu(callbacks: PauseMenuCallbacks): PauseMenu {
       </div>
 
       <div id="exit-menu-buttons">
-        <button id="resume-button" type="button">
+
+        <button
+          id="resume-button"
+          type="button"
+        >
           RESUME
         </button>
 
-        <button id="exit-to-menu-button" type="button">
+        <button
+          id="exit-to-menu-button"
+          type="button"
+        >
           EXIT TO MAIN MENU
         </button>
+
       </div>
+
     </div>
   `;
 
-  document.body.appendChild(menu);
+  document.body.appendChild(
+    menu
+  );
 
   const resumeButton =
     menu.querySelector<HTMLButtonElement>(
@@ -53,19 +70,37 @@ export function createPauseMenu(callbacks: PauseMenuCallbacks): PauseMenu {
     );
 
   const show = (): void => {
+
+    if (visible) {
+      return;
+    }
+
     visible = true;
-    menu.classList.add('visible');
+
+    menu.classList.add(
+      'visible'
+    );
   };
 
   const hide = (): void => {
+
+    if (!visible) {
+      return;
+    }
+
     visible = false;
-    menu.classList.remove('visible');
+
+    menu.classList.remove(
+      'visible'
+    );
   };
 
   resumeButton?.addEventListener(
     'click',
     () => {
+
       hide();
+
       callbacks.onResume();
     }
   );
@@ -73,35 +108,54 @@ export function createPauseMenu(callbacks: PauseMenuCallbacks): PauseMenu {
   exitButton?.addEventListener(
     'click',
     () => {
+
       hide();
+
       callbacks.onExit();
     }
   );
 
-  window.addEventListener(
-    'keydown',
-    (event) => {
-      if (event.key !== 'Escape') {
-        return;
-      }
+  const handleKeyDown = (
+    event: KeyboardEvent
+  ): void => {
 
-      event.preventDefault();
-
-      if (visible) {
-        hide();
-        callbacks.onResume();
-        return;
-      }
-
-      show();
+    if (
+      event.key !== 'Escape'
+    ) {
+      return;
     }
+
+    /*
+     * If the pause menu is already open,
+     * Escape does nothing.
+     */
+    if (visible) {
+      return;
+    }
+
+    /*
+     * Only allow the pause menu to open
+     * while an active game is running.
+     */
+    event.preventDefault();
+
+    show();
+  };
+
+  document.addEventListener(
+    'keydown',
+    handleKeyDown,
+    true
   );
 
   return {
+
     show,
+
     hide,
 
     toggle(): void {
+
       if (visible) {
         hide();
       } else {
@@ -114,6 +168,13 @@ export function createPauseMenu(callbacks: PauseMenuCallbacks): PauseMenu {
     },
 
     destroy(): void {
+
+      document.removeEventListener(
+        'keydown',
+        handleKeyDown,
+        true
+      );
+
       menu.remove();
     },
   };

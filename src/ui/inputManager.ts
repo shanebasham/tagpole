@@ -1,4 +1,3 @@
-import type { GameFlow } from '../game/gameFlow';
 import { gameState } from '../game/gameState';
 import type { Player } from '../player/player';
 import type { PauseMenu } from './pauseMenu';
@@ -9,9 +8,9 @@ export interface InputManager {
 
 export function createInputManager(
   player: Player,
-  gameFlow: GameFlow,
   pauseMenu: PauseMenu
 ): InputManager {
+
   const mobileAttack =
     document.getElementById(
       'mobile-attack'
@@ -33,6 +32,7 @@ export function createInputManager(
   );
 
   const attack = (): void => {
+
     if (
       !gameState.started ||
       gameState.playerDead ||
@@ -53,6 +53,7 @@ export function createInputManager(
   const handleMobileAttack = (
     event: PointerEvent
   ): void => {
+
     event.preventDefault();
     event.stopPropagation();
 
@@ -62,6 +63,7 @@ export function createInputManager(
   const handleMouseDown = (
     event: MouseEvent
   ): void => {
+
     if (
       event.button !== 0
     ) {
@@ -72,17 +74,10 @@ export function createInputManager(
   };
 
   const handleMobileExit = (): void => {
+
     if (
       pauseMenu.isVisible()
     ) {
-      pauseMenu.hide();
-
-      if (
-        gameState.started &&
-        !gameState.playerDead
-      ) {
-        gameFlow.resume();
-      }
 
       return;
     }
@@ -113,7 +108,9 @@ export function createInputManager(
   );
 
   return {
+
     destroy(): void {
+
       mobileAttack?.removeEventListener(
         'pointerdown',
         handleMobileAttack

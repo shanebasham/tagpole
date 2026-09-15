@@ -1,41 +1,93 @@
 import { gameState } from './gameState';
 
 export interface GameFlowCallbacks {
-  onStartAI: () => void;
+
+  onStartAI: (
+    aiCount: number
+  ) => void;
+
   onCreateRoom: () => void;
-  onJoinRoom: (roomCode: string) => void;
+
+  onJoinRoom: (
+    roomCode: string
+  ) => void;
+
   onStartMultiplayer: () => void;
+
   onPlayerDeath: () => void;
+
   onVictory: () => void;
+
   onPlayAgain: () => void;
+
   onReturnToMenu: () => void;
+
   onLeaveRoom: () => void;
+
   onResume: () => void;
 }
 
 export class GameFlow {
 
-  private readonly callbacks: GameFlowCallbacks;
+  private readonly callbacks:
+    GameFlowCallbacks;
+
+  private aiCount:
+    number = 5;
 
   constructor(
     callbacks: GameFlowCallbacks
   ) {
-    this.callbacks = callbacks;
+
+    this.callbacks =
+      callbacks;
   }
 
   // ==============================
   // VS AI
   // ==============================
 
-  startAI(): void {
+  startAI(
+    aiCount: number = this.aiCount
+  ): void {
 
-    gameState.multiplayer = false;
-    gameState.started = true;
-    gameState.playerDead = false;
-    gameState.playerTrapped = false;
-    gameState.aiRoundOver = false;
+    this.aiCount =
+      Math.max(
+        1,
+        Math.min(
+          11,
+          Math.floor(aiCount)
+        )
+      );
 
-    this.callbacks.onStartAI();
+    gameState.multiplayer =
+      false;
+
+    gameState.started =
+      true;
+
+    gameState.playerDead =
+      false;
+
+    gameState.playerTrapped =
+      false;
+
+    gameState.aiRoundOver =
+      false;
+
+    this.callbacks.onStartAI(
+      this.aiCount
+    );
+  }
+
+  // ==============================
+  // GET AI COUNT
+  // ==============================
+
+  getAICount():
+    number {
+
+    return this.aiCount;
   }
 
   // ==============================
@@ -44,11 +96,20 @@ export class GameFlow {
 
   createRoom(): void {
 
-    gameState.multiplayer = true;
-    gameState.started = false;
-    gameState.playerDead = false;
-    gameState.playerTrapped = false;
-    gameState.aiRoundOver = false;
+    gameState.multiplayer =
+      true;
+
+    gameState.started =
+      false;
+
+    gameState.playerDead =
+      false;
+
+    gameState.playerTrapped =
+      false;
+
+    gameState.aiRoundOver =
+      false;
 
     this.callbacks.onCreateRoom();
   }
@@ -61,11 +122,20 @@ export class GameFlow {
     roomCode: string
   ): void {
 
-    gameState.multiplayer = true;
-    gameState.started = false;
-    gameState.playerDead = false;
-    gameState.playerTrapped = false;
-    gameState.aiRoundOver = false;
+    gameState.multiplayer =
+      true;
+
+    gameState.started =
+      false;
+
+    gameState.playerDead =
+      false;
+
+    gameState.playerTrapped =
+      false;
+
+    gameState.aiRoundOver =
+      false;
 
     this.callbacks.onJoinRoom(
       roomCode
@@ -78,13 +148,23 @@ export class GameFlow {
 
   startMultiplayer(): void {
 
-    gameState.multiplayer = true;
-    gameState.started = true;
-    gameState.playerDead = false;
-    gameState.playerTrapped = false;
-    gameState.aiRoundOver = false;
+    gameState.multiplayer =
+      true;
 
-    this.callbacks.onStartMultiplayer();
+    gameState.started =
+      true;
+
+    gameState.playerDead =
+      false;
+
+    gameState.playerTrapped =
+      false;
+
+    gameState.aiRoundOver =
+      false;
+
+    this.callbacks
+      .onStartMultiplayer();
   }
 
   // ==============================
@@ -93,14 +173,20 @@ export class GameFlow {
 
   playerDied(): void {
 
-    if (gameState.playerDead) {
+    if (
+      gameState.playerDead
+    ) {
       return;
     }
 
-    gameState.playerDead = true;
-    gameState.playerTrapped = false;
+    gameState.playerDead =
+      true;
 
-    this.callbacks.onPlayerDeath();
+    gameState.playerTrapped =
+      false;
+
+    this.callbacks
+      .onPlayerDeath();
   }
 
   // ==============================
@@ -109,11 +195,14 @@ export class GameFlow {
 
   victory(): void {
 
-    if (gameState.aiRoundOver) {
+    if (
+      gameState.aiRoundOver
+    ) {
       return;
     }
 
-    gameState.aiRoundOver = true;
+    gameState.aiRoundOver =
+      true;
 
     this.callbacks.onVictory();
   }
@@ -124,15 +213,21 @@ export class GameFlow {
 
   playAgain(): void {
 
-    gameState.playerDead = false;
-    gameState.playerTrapped = false;
-    gameState.aiRoundOver = false;
+    gameState.playerDead =
+      false;
 
-    // VS AI can immediately restart.
-    // Multiplayer waits for the server to
-    // confirm the new round.
-    if (!gameState.multiplayer) {
-      gameState.started = true;
+    gameState.playerTrapped =
+      false;
+
+    gameState.aiRoundOver =
+      false;
+
+    if (
+      !gameState.multiplayer
+    ) {
+
+      gameState.started =
+        true;
     }
 
     this.callbacks.onPlayAgain();
@@ -144,11 +239,20 @@ export class GameFlow {
 
   leaveRoom(): void {
 
-    gameState.multiplayer = false;
-    gameState.started = false;
-    gameState.playerDead = false;
-    gameState.playerTrapped = false;
-    gameState.aiRoundOver = false;
+    gameState.multiplayer =
+      false;
+
+    gameState.started =
+      false;
+
+    gameState.playerDead =
+      false;
+
+    gameState.playerTrapped =
+      false;
+
+    gameState.aiRoundOver =
+      false;
 
     this.callbacks.onLeaveRoom();
   }
@@ -159,13 +263,23 @@ export class GameFlow {
 
   returnToMenu(): void {
 
-    gameState.multiplayer = false;
-    gameState.started = false;
-    gameState.playerDead = false;
-    gameState.playerTrapped = false;
-    gameState.aiRoundOver = false;
+    gameState.multiplayer =
+      false;
 
-    this.callbacks.onReturnToMenu();
+    gameState.started =
+      false;
+
+    gameState.playerDead =
+      false;
+
+    gameState.playerTrapped =
+      false;
+
+    gameState.aiRoundOver =
+      false;
+
+    this.callbacks
+      .onReturnToMenu();
   }
 
   // ==============================
@@ -181,7 +295,8 @@ export class GameFlow {
       return;
     }
 
-    gameState.started = true;
+    gameState.started =
+      true;
 
     this.callbacks.onResume();
   }
@@ -204,10 +319,19 @@ export class GameFlow {
 
   reset(): void {
 
-    gameState.started = false;
-    gameState.multiplayer = false;
-    gameState.playerTrapped = false;
-    gameState.playerDead = false;
-    gameState.aiRoundOver = false;
+    gameState.started =
+      false;
+
+    gameState.multiplayer =
+      false;
+
+    gameState.playerTrapped =
+      false;
+
+    gameState.playerDead =
+      false;
+
+    gameState.aiRoundOver =
+      false;
   }
 }

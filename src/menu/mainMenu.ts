@@ -1,15 +1,22 @@
 import * as THREE from 'three';
+
 import './style.css';
 
 import {
-  setPlayerFlashlightVisible
+  setPlayerFlashlightVisible,
 } from '../player/playerModel';
+
+import {
+  AISelector,
+} from './aiSelector';
 
 export class MainMenu {
 
-  private container: HTMLDivElement;
+  private container:
+    HTMLDivElement;
 
-  private tadpoleScene: THREE.Scene;
+  private tadpoleScene:
+    THREE.Scene;
 
   private tadpoleCamera:
     THREE.PerspectiveCamera;
@@ -20,8 +27,11 @@ export class MainMenu {
   private tadpoleModel:
     THREE.Group;
 
+  private aiSelector:
+    AISelector | null = null;
+
   private onVsAI:
-    () => void;
+    (aiCount: number) => void;
 
   private onCreateRoom:
     () => void;
@@ -39,9 +49,12 @@ export class MainMenu {
     HTMLButtonElement | null =
     null;
 
+  private selectedAICount:
+    number = 0;
+
   constructor(
     tadpoleModel: THREE.Group,
-    onVsAI: () => void,
+    onVsAI: (aiCount: number) => void,
     onCreateRoom: () => void,
     onJoinRoom: (roomCode: string) => void,
     onLeaveRoom: () => void,
@@ -165,15 +178,12 @@ export class MainMenu {
       'menu-tadpole-renderer';
 
     this.tadpoleModel =
-        tadpoleModel.clone(true);
+      tadpoleModel.clone(true);
 
     setPlayerFlashlightVisible(
-        this.tadpoleModel,
-        false
+      this.tadpoleModel,
+      false
     );
-
-    this.tadpoleModel.visible =
-        true;
 
     this.tadpoleModel.visible =
       true;
@@ -207,10 +217,29 @@ export class MainMenu {
   }
 
   // ==============================
+  // CLEAN UP AI SELECTOR
+  // ==============================
+
+  private destroyAISelector(): void {
+
+    if (!this.aiSelector) {
+      return;
+    }
+
+    this.aiSelector.destroy();
+    this.aiSelector = null;
+
+    this.tadpoleModel.visible =
+      true;
+  }
+
+  // ==============================
   // MAIN MENU
   // ==============================
 
-  private showMainMenu() {
+  private showMainMenu(): void {
+
+    this.destroyAISelector();
 
     this.lobbyStartButton =
       null;
@@ -281,21 +310,16 @@ export class MainMenu {
     this.attachTadpoleRenderer();
 
     document
-      .getElementById(
-        'menu-ai'
-      )
+      .getElementById('menu-ai')
       ?.addEventListener(
         'click',
         () => {
-          this.hide();
-          this.onVsAI();
+          this.showAISetup();
         }
       );
 
     document
-      .getElementById(
-        'menu-friends'
-      )
+      .getElementById('menu-friends')
       ?.addEventListener(
         'click',
         () => {
@@ -304,9 +328,7 @@ export class MainMenu {
       );
 
     document
-      .getElementById(
-        'menu-settings'
-      )
+      .getElementById('menu-settings')
       ?.addEventListener(
         'click',
         () => {
@@ -334,9 +356,7 @@ export class MainMenu {
       );
 
     document
-      .getElementById(
-        'menu-customize'
-      )
+      .getElementById('menu-customize')
       ?.addEventListener(
         'click',
         () => {
@@ -370,10 +390,176 @@ export class MainMenu {
   }
 
   // ==============================
+  // AI SETUP
+  // ==============================
+
+  private showAISetup(): void {
+
+    this.destroyAISelector();
+
+    this.lobbyStartButton =
+      null;
+
+    this.container.innerHTML = `
+      <div class="menu-content ai-setup-content">
+
+        <div class="menu-left">
+
+          <div class="game-title">
+            TAGPOLE
+          </div>
+
+          <div class="game-subtitle">
+            VS AI
+          </div>
+
+          <div class="ai-setup">
+
+            <div class="ai-setup-label">
+              CHOOSE YOUR OPPONENTS
+            </div>
+
+            <div
+              id="ai-selector-container"
+              class="ai-selector-container"
+            ></div>
+
+            <button
+              id="ai-start"
+              class="menu-button ai-start-button"
+            >
+              START GAME
+            </button>
+
+          </div>
+
+        </div>
+
+        <div class="menu-character ai-menu-character">
+
+          <div
+            id="menu-tadpole-container"
+            class="menu-tadpole ai-menu-tadpole"
+          ></div>
+
+        </div>
+
+      </div>
+
+      <button
+        id="ai-back"
+        class="menu-button menu-back-button"
+      >
+        ← BACK
+      </button>
+
+      <div class="menu-version">
+        TAGPOLE
+      </div>
+    `;
+
+    const tadpoleContainer =
+      document.getElementById(
+        'menu-tadpole-container'
+      );
+
+    const selectorContainer =
+      document.getElementById(
+        'ai-selector-container'
+      );
+
+    if (
+      !tadpoleContainer ||
+      !selectorContainer
+    ) {
+      return;
+    }
+
+    /*
+     * The selector uses the existing Three.js
+     * renderer and scene, but hides the normal
+     * single centered tadpole.
+     */
+    this.tadpoleModel.visible =
+      false;
+
+    tadpoleContainer.appendChild(
+      this.tadpoleRenderer.domElement
+    );
+
+    /*
+     * The radial selector itself is placed
+     * over the renderer.
+     */
+    tadpoleContainer.appendChild(
+      selectorContainer
+    );
+
+    this.aiSelector =
+      new AISelector(
+        this.tadpoleScene,
+        this.tadpoleModel,
+        tadpoleContainer,
+        {
+          onCountChanged:
+            count => {
+
+              this.selectedAICount =
+                count;
+            },
+        }
+      );
+
+    document
+      .getElementById('ai-start')
+      ?.addEventListener(
+        'click',
+        () => {
+
+          /*
+           * Do not allow a zero-opponent
+           * round to start.
+           */
+          if (
+            this.selectedAICount < 1
+          ) {
+            return;
+          }
+
+          const count =
+            this.selectedAICount;
+
+          this.hide();
+
+          this.onVsAI(
+            count
+          );
+        }
+      );
+
+    document
+      .getElementById('ai-back')
+      ?.addEventListener(
+        'click',
+        () => {
+
+          this.showMainMenu();
+        }
+      );
+
+    this.container.style.display =
+      'flex';
+
+    this.resize();
+  }
+
+  // ==============================
   // FRIENDS MENU
   // ==============================
 
-   showFriendsMenu() {
+  showFriendsMenu(): void {
+
+    this.destroyAISelector();
 
     this.lobbyStartButton =
       null;
@@ -443,7 +629,9 @@ export class MainMenu {
       ?.addEventListener(
         'click',
         () => {
+
           this.hide();
+
           this.onCreateRoom();
         }
       );
@@ -455,6 +643,7 @@ export class MainMenu {
       ?.addEventListener(
         'click',
         () => {
+
           this.showJoinRoom();
         }
       );
@@ -466,6 +655,7 @@ export class MainMenu {
       ?.addEventListener(
         'click',
         () => {
+
           this.showMainMenu();
         }
       );
@@ -480,7 +670,9 @@ export class MainMenu {
   // JOIN ROOM
   // ==============================
 
-  private showJoinRoom() {
+  private showJoinRoom(): void {
+
+    this.destroyAISelector();
 
     this.lobbyStartButton =
       null;
@@ -570,6 +762,7 @@ export class MainMenu {
     input.addEventListener(
       'input',
       () => {
+
         input.value =
           input.value
             .toUpperCase()
@@ -594,7 +787,9 @@ export class MainMenu {
       if (
         roomCode.length !== 4
       ) {
+
         input.focus();
+
         return;
       }
 
@@ -612,10 +807,10 @@ export class MainMenu {
 
     input.addEventListener(
       'keydown',
-      (event) => {
+      event => {
+
         if (
-          event.key ===
-          'Enter'
+          event.key === 'Enter'
         ) {
           join();
         }
@@ -625,6 +820,7 @@ export class MainMenu {
     backButton?.addEventListener(
       'click',
       () => {
+
         this.showFriendsMenu();
       }
     );
@@ -651,7 +847,9 @@ export class MainMenu {
     playerCount: number,
     maxPlayers: number,
     isHost: boolean
-  ) {
+  ): void {
+
+    this.destroyAISelector();
 
     this.container.innerHTML = `
       <div class="menu-content lobby-content">
@@ -737,26 +935,26 @@ export class MainMenu {
       ) as HTMLButtonElement | null;
 
     this.lobbyStartButton
-    ?.addEventListener(
+      ?.addEventListener(
         'click',
         () => {
 
-        if (
+          if (
             !this.lobbyStartButton ||
             this.lobbyStartButton.disabled
-        ) {
+          ) {
             return;
-        }
+          }
 
-        this.lobbyStartButton.disabled =
+          this.lobbyStartButton.disabled =
             true;
 
-        this.lobbyStartButton.textContent =
+          this.lobbyStartButton.textContent =
             'STARTING...';
 
-        this.onStartGame();
+          this.onStartGame();
         }
-    );
+      );
 
     document
       .getElementById(
@@ -765,6 +963,7 @@ export class MainMenu {
       ?.addEventListener(
         'click',
         () => {
+
           this.onLeaveRoom();
         }
       );
@@ -779,7 +978,7 @@ export class MainMenu {
   // ATTACH TADPOLE
   // ==============================
 
-  private attachTadpoleRenderer() {
+  private attachTadpoleRenderer(): void {
 
     const tadpoleContainer =
       document.getElementById(
@@ -789,6 +988,7 @@ export class MainMenu {
     if (
       tadpoleContainer
     ) {
+
       tadpoleContainer.appendChild(
         this.tadpoleRenderer.domElement
       );
@@ -801,7 +1001,7 @@ export class MainMenu {
 
   update(
     time: number
-  ) {
+  ): void {
 
     if (
       !this.isVisible()
@@ -809,44 +1009,53 @@ export class MainMenu {
       return;
     }
 
-    const seconds =
-      time * 0.001;
+    if (this.aiSelector) {
 
-    this.tadpoleModel.position.y =
-      Math.sin(
-        seconds * 1.5
-      ) * 0.16;
+      this.aiSelector.update(
+        time
+      );
 
-    this.tadpoleModel.position.x =
-      Math.sin(
-        seconds * 0.7
-      ) * 0.08;
+    } else {
 
-    this.tadpoleModel.rotation.y =
-      Math.PI * 0.75 +
-      Math.sin(
-        seconds * 0.8
-      ) * 0.12;
+      const seconds =
+        time * 0.001;
 
-    this.tadpoleModel.rotation.z =
-      Math.sin(
-        seconds * 1.2
-      ) * 0.06;
+      this.tadpoleModel.position.y =
+        Math.sin(
+          seconds * 1.5
+        ) * 0.16;
 
-    this.tadpoleModel.rotation.x =
-      Math.sin(
-        seconds * 1.7
-      ) * 0.035;
+      this.tadpoleModel.position.x =
+        Math.sin(
+          seconds * 0.7
+        ) * 0.08;
 
-    const scale =
-      1.7 +
-      Math.sin(
-        seconds * 1.5
-      ) * 0.035;
+      this.tadpoleModel.rotation.y =
+        Math.PI * 0.75 +
+        Math.sin(
+          seconds * 0.8
+        ) * 0.12;
 
-    this.tadpoleModel.scale.setScalar(
-      scale
-    );
+      this.tadpoleModel.rotation.z =
+        Math.sin(
+          seconds * 1.2
+        ) * 0.06;
+
+      this.tadpoleModel.rotation.x =
+        Math.sin(
+          seconds * 1.7
+        ) * 0.035;
+
+      const scale =
+        1.7 +
+        Math.sin(
+          seconds * 1.5
+        ) * 0.035;
+
+      this.tadpoleModel.scale.setScalar(
+        scale
+      );
+    }
 
     this.tadpoleRenderer.render(
       this.tadpoleScene,
@@ -858,7 +1067,7 @@ export class MainMenu {
   // RESIZE
   // ==============================
 
-  resize() {
+  resize(): void {
 
     const element =
       document.getElementById(
@@ -884,7 +1093,8 @@ export class MainMenu {
     this.tadpoleCamera.aspect =
       width / height;
 
-    this.tadpoleCamera.updateProjectionMatrix();
+    this.tadpoleCamera
+      .updateProjectionMatrix();
 
     this.tadpoleRenderer.setSize(
       width,
@@ -897,7 +1107,7 @@ export class MainMenu {
   // SHOW
   // ==============================
 
-  show() {
+  show(): void {
 
     this.container.style.display =
       'flex';
@@ -909,7 +1119,9 @@ export class MainMenu {
   // HIDE
   // ==============================
 
-  hide() {
+  hide(): void {
+
+    this.destroyAISelector();
 
     this.container.style.display =
       'none';
@@ -919,7 +1131,7 @@ export class MainMenu {
   // VISIBLE
   // ==============================
 
-  isVisible() {
+  isVisible(): boolean {
 
     return (
       this.container.style.display !==

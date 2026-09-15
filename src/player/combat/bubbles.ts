@@ -1,29 +1,61 @@
 import * as THREE from 'three';
 
 export interface CombatTarget {
-  getPosition(): THREE.Vector3;
-  isAlive(): boolean;
-  isTrapped(): boolean;
-  trap(bubble: THREE.Mesh): boolean;
-  updateTrappedPosition(position: THREE.Vector3): void;
-  onBubbleReachedSurface(): void;
+
+  getPosition():
+    THREE.Vector3;
+
+  isAlive():
+    boolean;
+
+  isTrapped():
+    boolean;
+
+  trap(
+    bubble: THREE.Mesh
+  ):
+    boolean;
+
+  updateTrappedPosition(
+    position: THREE.Vector3
+  ):
+    void;
+
+  onBubbleReachedSurface():
+    void;
 }
 
 type SmallBubble = {
-  mesh: THREE.Mesh;
-  velocity: THREE.Vector3;
-  visualOnly: boolean;
+
+  mesh:
+    THREE.Mesh;
+
+  velocity:
+    THREE.Vector3;
+
+  visualOnly:
+    boolean;
 };
 
 export class Bubbles {
 
-  private readonly surfaceY = 30;
-  private readonly bubbleRiseSpeed = 2.0;
-  private readonly bubblePopHeight = 2.5;
-  private readonly smallBubbleSpeed = 7.0;
-  private readonly targetHitRadius = 0.45;
+  private readonly surfaceY =
+    30;
 
-  private readonly smallBubbles: SmallBubble[] = [];
+  private readonly bubbleRiseSpeed =
+    2.0;
+
+  private readonly bubblePopHeight =
+    2.5;
+
+  private readonly smallBubbleSpeed =
+    7.0;
+
+  private readonly targetHitRadius =
+    0.45;
+
+  private readonly smallBubbles:
+    SmallBubble[] = [];
 
   private readonly trappingBubbles:
     Array<{
@@ -38,20 +70,28 @@ export class Bubbles {
       duration: number;
     }> = [];
 
-  private targets: CombatTarget[] = [];
+  private targets:
+    CombatTarget[] = [];
 
   setTargets(
     targets: CombatTarget[]
   ): void {
 
-    this.targets = targets;
+    this.targets =
+      targets;
   }
-  
-  get bubble(): THREE.Mesh | null {
-  return this.trappingBubbles.length > 0
-    ? this.trappingBubbles[0].mesh
-    : null;
-}
+
+  get bubble():
+    THREE.Mesh | null {
+
+    return this.trappingBubbles.length > 0
+      ? this.trappingBubbles[0].mesh
+      : null;
+  }
+
+  // ==============================
+  // SMALL BUBBLES
+  // ==============================
 
   fire(
     scene: THREE.Scene,
@@ -125,7 +165,9 @@ export class Bubbles {
         this.smallBubbleSpeed
       );
 
-    scene.add(mesh);
+    scene.add(
+      mesh
+    );
 
     this.smallBubbles.push({
       mesh,
@@ -181,7 +223,9 @@ export class Bubbles {
       position
     );
 
-    scene.add(mesh);
+    scene.add(
+      mesh
+    );
 
     this.smallBubbles.push({
       mesh,
@@ -214,14 +258,16 @@ export class Bubbles {
 
     direction.normalize();
 
-    if (aimPosition) {
+    if (
+      aimPosition
+    ) {
 
-      direction
-        .subVectors(
-          aimPosition,
-          object.position
-        )
-        .normalize();
+      direction.subVectors(
+        aimPosition,
+        object.position
+      );
+
+      direction.normalize();
     }
 
     const spawnPosition =
@@ -230,7 +276,9 @@ export class Bubbles {
     spawnPosition.add(
       direction
         .clone()
-        .multiplyScalar(0.35)
+        .multiplyScalar(
+          0.35
+        )
     );
 
     return this.fire(
@@ -240,6 +288,10 @@ export class Bubbles {
     );
   }
 
+  // ==============================
+  // TRAPPING BUBBLE
+  // ==============================
+
   createTrappingBubble(
     scene: THREE.Scene,
     target: CombatTarget
@@ -247,7 +299,7 @@ export class Bubbles {
 
     const geometry =
       new THREE.SphereGeometry(
-        1.8,
+        2,
         24,
         16
       );
@@ -268,6 +320,10 @@ export class Bubbles {
         material
       );
 
+    /*
+    * The player model handles its visual
+    * offset relative to this bubble.
+    */
     bubble.position.copy(
       target.getPosition()
     );
@@ -277,12 +333,19 @@ export class Bubbles {
     );
 
     this.trappingBubbles.push({
-      mesh: bubble,
-      target,
+      mesh:
+        bubble,
+
+      target:
+        target,
     });
 
     return bubble;
   }
+
+  // ==============================
+  // UPDATE SMALL BUBBLES
+  // ==============================
 
   private updateSmallBubbles(
     delta: number,
@@ -380,7 +443,9 @@ export class Bubbles {
           }
         }
 
-        if (hit) {
+        if (
+          hit
+        ) {
           continue;
         }
       }
@@ -401,6 +466,10 @@ export class Bubbles {
       }
     }
   }
+
+  // ==============================
+  // UPDATE TRAPPING BUBBLES
+  // ==============================
 
   private updateTrappingBubbles(
     delta: number,
@@ -457,6 +526,10 @@ export class Bubbles {
     }
   }
 
+  // ==============================
+  // BUBBLE POP
+  // ==============================
+
   private createBubblePop(
     scene: THREE.Scene,
     position: THREE.Vector3
@@ -485,7 +558,9 @@ export class Bubbles {
       position
     );
 
-    scene.add(mesh);
+    scene.add(
+      mesh
+    );
 
     this.bubblePops.push({
       mesh,
@@ -494,6 +569,10 @@ export class Bubbles {
     });
   }
 
+  // ==============================
+  // REMOVE PROJECTILE
+  // ==============================
+
   private removeProjectile(
     index: number
   ): void {
@@ -501,7 +580,9 @@ export class Bubbles {
     const bubble =
       this.smallBubbles[index];
 
-    if (!bubble) {
+    if (
+      !bubble
+    ) {
       return;
     }
 
@@ -532,6 +613,10 @@ export class Bubbles {
     );
   }
 
+  // ==============================
+  // REMOVE TRAPPING BUBBLE
+  // ==============================
+
   private removeTrappingBubble(
     index: number
   ): void {
@@ -539,7 +624,9 @@ export class Bubbles {
     const bubble =
       this.trappingBubbles[index];
 
-    if (!bubble) {
+    if (
+      !bubble
+    ) {
       return;
     }
 
@@ -569,6 +656,10 @@ export class Bubbles {
       1
     );
   }
+
+  // ==============================
+  // UPDATE POPS
+  // ==============================
 
   private updateBubblePops(
     delta: number
@@ -638,6 +729,10 @@ export class Bubbles {
     }
   }
 
+  // ==============================
+  // MAIN UPDATE
+  // ==============================
+
   update(
     delta: number,
     scene: THREE.Scene,
@@ -659,6 +754,10 @@ export class Bubbles {
       delta
     );
   }
+
+  // ==============================
+  // CLEAR PROJECTILES
+  // ==============================
 
   clearProjectiles(
     _scene?: THREE.Scene
@@ -694,6 +793,10 @@ export class Bubbles {
     this.smallBubbles.length =
       0;
   }
+
+  // ==============================
+  // RESET
+  // ==============================
 
   reset(
     _scene?: THREE.Scene
