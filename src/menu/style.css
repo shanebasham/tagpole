@@ -822,3 +822,20 @@
     margin-top:30px;
   }
 }
+
+/* =================================
+   AI SELECTOR - 800x380 LANDSCAPE
+   ================================= */
+
+@media (min-width: 700px) and (max-height: 500px) {
+
+  #menu-tadpole-container.ai-menu-tadpole {
+    width: 500px;
+    height: 500px;
+    max-width: none;
+    max-height: none;
+    zoom: 0.7;
+    margin-top: 50px;
+    margin-right: 200px;
+  }
+}

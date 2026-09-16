@@ -24,7 +24,10 @@ import { createFlashlight } from './player/flashlight';
 
 import { AIManager } from './player/ai/aiManager';
 
-import { clearLocalTrapBubble, updateLocalTrapBubble } from './player/combat/localTrapBubble';
+import {
+  clearLocalTrapBubble,
+  updateLocalTrapBubble,
+} from './player/combat/localTrapBubble';
 import type { LocalTrapBubble } from './player/combat/localTrapBubble';
 
 import { createDeathScreen } from './ui/gameOverScreen';
@@ -104,6 +107,7 @@ renderer.domElement.style.top = '0';
 renderer.domElement.style.width = '100vw';
 renderer.domElement.style.height = '100vh';
 renderer.domElement.style.zIndex = '1';
+renderer.domElement.style.touchAction = 'none';
 
 // ==============================
 // POINTER LOCK
@@ -139,9 +143,6 @@ const worldManager = new WorldManager(
   scene
 );
 
-// Initial local world.
-// Multiplayer can replace this
-// with the server's room seed.
 worldManager.create();
 
 // ==============================
@@ -161,7 +162,6 @@ const multiplayer =
 
 multiplayer.setStatusListener(
   (status) => {
-
     console.log(
       'Multiplayer status:',
       status
@@ -178,13 +178,11 @@ let loadedWorldSeed =
 
 multiplayer.setStateListener(
   (state) => {
-
     if (
       state.worldSeed !== 0 &&
       state.worldSeed !==
         loadedWorldSeed
     ) {
-
       console.log(
         'Loading multiplayer world seed:',
         state.worldSeed
@@ -367,7 +365,6 @@ gameFlow = new GameFlow({
   onStartAI: (
     aiCount
   ) => {
-
     clearCurrentLocalTrap();
 
     multiplayerGame.stop();
@@ -390,9 +387,6 @@ gameFlow = new GameFlow({
         aiCount + 1
       );
 
-    // Human gets the first
-    // randomly selected position.
-
     player.model.position.copy(
       spawnPositions[0]
     );
@@ -411,9 +405,6 @@ gameFlow = new GameFlow({
 
     player.camera.rotation.order =
       'YXZ';
-
-    // AI receives positions 1+
-    // from the exact same shuffled list.
 
     aiManager.create(
       aiCount,
@@ -515,7 +506,8 @@ gameFlow = new GameFlow({
       false
     );
 
-    player.model.visible = false;
+    player.model.visible =
+      false;
 
     player.camera.position.set(
       0,
@@ -597,7 +589,8 @@ gameFlow = new GameFlow({
       false
     );
 
-    player.model.visible = false;
+    player.model.visible =
+      false;
 
     aiManager.clear();
 
@@ -627,7 +620,8 @@ gameFlow = new GameFlow({
       false
     );
 
-    player.model.visible = false;
+    player.model.visible =
+      false;
 
     aiManager.clear();
 
@@ -740,7 +734,6 @@ pauseMenu =
   createPauseMenu({
 
     onResume: () => {
-
       if (
         !gameState.started ||
         gameState.playerDead ||
@@ -757,12 +750,10 @@ pauseMenu =
     onExit: () => {
       gameFlow.returnToMenu();
     },
-
   });
 
-  pointerLock.onUnexpectedUnlock(
+pointerLock.onUnexpectedUnlock(
   () => {
-
     if (
       !gameState.started ||
       gameState.playerDead ||
@@ -792,8 +783,7 @@ const playerController =
     setLocalTrapBubble: (
       bubble
     ) => {
-      localTrapBubble =
-        bubble;
+      localTrapBubble = bubble;
     },
   });
 
@@ -877,8 +867,7 @@ multiplayerController =
     setLocalTrapBubble: (
       bubble
     ) => {
-      localTrapBubble =
-        bubble;
+      localTrapBubble = bubble;
     },
 
     updateCombatTargets:
@@ -1004,15 +993,14 @@ const gameLoop =
         delta
       );
 
-    // ========================
-    // SEND LOCAL PLAYER STATE
-    // ========================
+      // ========================
+      // SEND LOCAL PLAYER STATE
+      // ========================
 
       if (
         gameState.multiplayer &&
         gameState.started
       ) {
-
         multiplayer.sendPlayerState(
           player.getNetworkState()
         );
