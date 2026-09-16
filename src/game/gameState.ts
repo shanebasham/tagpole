@@ -4,7 +4,6 @@ export type GamePhase =
   | 'ended';
 
 export interface NetworkPlayer {
-
   id: string;
 
   x: number;
@@ -22,67 +21,48 @@ export interface NetworkPlayer {
   trapped: boolean;
   isDrowned: boolean;
 
-  trappedAt:
-    number | null;
+  trappedAt: number | null;
+  trapEndAt: number | null;
 
-  trapEndAt:
-    number | null;
+  color: string;
 }
 
 export interface GameState {
+  phase: GamePhase;
 
-  phase:
-    GamePhase;
+  players: NetworkPlayer[];
 
-  players:
-    NetworkPlayer[];
+  maxPlayers: number;
 
-  maxPlayers:
-    12;
+  hostId: string;
 
-  hostId:
-    string;
-
-  worldSeed:
-    number;
+  worldSeed: number;
 }
 
-export function createGameState():
-  GameState {
-
+export function createGameState(): GameState {
   return {
+    phase: 'lobby',
 
-    phase:
-      'lobby',
+    players: [],
 
-    players:
-      [],
+    maxPlayers: 12,
 
-    maxPlayers:
-      12,
+    hostId: '',
 
-    hostId:
-      '',
-
-    worldSeed:
-      0,
+    worldSeed: Math.floor(
+      Math.random() * 2147483647
+    ),
   };
 }
 
 export const gameState = {
+  started: false,
 
-  started:
-    false,
+  multiplayer: false,
 
-  multiplayer:
-    false,
+  playerTrapped: false,
 
-  playerTrapped:
-    false,
+  playerDead: false,
 
-  playerDead:
-    false,
-
-  aiRoundOver:
-    false,
+  aiRoundOver: false,
 };

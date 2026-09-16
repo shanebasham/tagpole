@@ -5,7 +5,12 @@ import type {
 } from '../game/gameState';
 
 import {
+  PLAYER_COLORS
+} from '../game/playerColor';
+
+import {
   createPlayerModel,
+  setPlayerModelColor,
   setPlayerFlashlightVisible
 } from '../player/playerModel';
 
@@ -85,10 +90,9 @@ export class RemotePlayer
     this.model =
       createPlayerModel();
 
-    /*
-     * Remote players normally have
-     * their flashlight beams enabled.
-     */
+    this.applyNetworkColor(
+      player.color
+    );
 
     setPlayerFlashlightVisible(
       this.model,
@@ -133,6 +137,30 @@ export class RemotePlayer
   }
 
   // ========================================
+  // COLOR
+  // ========================================
+
+  private applyNetworkColor(
+    colorId: string
+  ): void {
+
+    const color =
+      PLAYER_COLORS.find(
+        item =>
+          item.id === colorId
+      );
+
+    if (!color) {
+      return;
+    }
+
+    setPlayerModelColor(
+      this.model,
+      color.hex
+    );
+  }
+
+  // ========================================
   // COMBAT TARGET
   // ========================================
 
@@ -170,24 +198,8 @@ export class RemotePlayer
       this.id
     );
 
-    /*
-     * Do NOT permanently make the
-     * remote player trapped here.
-     *
-     * The server must confirm it.
-     */
-
     return true;
   }
-
-  /*
-   * Kept for compatibility with
-   * existing Bubbles.ts code.
-   *
-   * The network/server state is now
-   * authoritative, so this does not
-   * override the server position.
-   */
 
   updateTrappedPosition(
     position: THREE.Vector3
@@ -199,11 +211,6 @@ export class RemotePlayer
       return;
     }
 
-    /*
-     * Only use this as a visual hint
-     * until the next network state.
-     */
-
     this.model.position.lerp(
       position,
       0.35
@@ -211,10 +218,7 @@ export class RemotePlayer
   }
 
   onBubbleReachedSurface(): void {
-
-    /*
-     * Server controls drowning.
-     */
+    // Server controls drowning.
   }
 
   // ========================================
@@ -228,9 +232,14 @@ export class RemotePlayer
     const wasTrapped =
       this.trapped;
 
-    /*
-     * NORMAL MOVEMENT
-     */
+    // Always update color.
+    this.applyNetworkColor(
+      player.color
+    );
+
+    // ======================================
+    // NORMAL MOVEMENT
+    // ======================================
 
     if (
       !player.trapped &&
@@ -244,23 +253,15 @@ export class RemotePlayer
       );
     }
 
-    /*
-     * Rotation is always networked.
-     *
-     * Both pitch and yaw are used so
-     * the entire tadpole follows the
-     * player's look direction.
-     */
-
     this.targetRotation.set(
       player.pitch,
       player.yaw,
       0
     );
 
-    /*
-     * DROWNED
-     */
+    // ======================================
+    // DROWNED
+    // ======================================
 
     if (
       player.isDrowned
@@ -288,18 +289,16 @@ export class RemotePlayer
       return;
     }
 
-    /*
-     * ALIVE / VISIBLE
-     */
+    // ======================================
+    // ALIVE / VISIBLE
+    // ======================================
 
     this.model.visible =
       player.alive;
 
-    /*
-     * ======================================
-     * NEW TRAP
-     * ======================================
-     */
+    // ======================================
+    // NEW TRAP
+    // ======================================
 
     if (
       player.trapped &&
@@ -315,35 +314,16 @@ export class RemotePlayer
       this.trapEndAt =
         player.trapEndAt;
 
-      /*
-       * Turn off the flashlight beams
-       * while trapped.
-       */
-
       setPlayerFlashlightVisible(
         this.model,
         false
       );
-
-      /*
-       * The server sends the exact position
-       * where the trap started.
-       */
 
       this.trapStartPosition.set(
         player.x,
         player.y,
         player.z
       );
-
-      /*
-       * Server's BUBBLE_POP_Y is:
-       *
-       * SURFACE_Y 30
-       * + POP_HEIGHT 2.5
-       * - CENTER_OFFSET 1.5
-       * = 31
-       */
 
       this.trapTargetPosition.set(
         player.x,
@@ -363,11 +343,9 @@ export class RemotePlayer
       return;
     }
 
-    /*
-     * ======================================
-     * ALREADY TRAPPED
-     * ======================================
-     */
+    // ======================================
+    // ALREADY TRAPPED
+    // ======================================
 
     if (
       player.trapped
@@ -382,12 +360,6 @@ export class RemotePlayer
       this.trapEndAt =
         player.trapEndAt;
 
-      /*
-       * Make sure the flashlight stays
-       * disabled even if another network
-       * update arrives while trapped.
-       */
-
       setPlayerFlashlightVisible(
         this.model,
         false
@@ -396,11 +368,9 @@ export class RemotePlayer
       return;
     }
 
-    /*
-     * ======================================
-     * RELEASED / DROWNED
-     * ======================================
-     */
+    // ======================================
+    // RELEASED
+    // ======================================
 
     if (
       !player.trapped &&
@@ -416,22 +386,12 @@ export class RemotePlayer
       this.trapEndAt =
         null;
 
-      /*
-       * Turn the flashlight beams back
-       * on after the player is released.
-       */
-
       setPlayerFlashlightVisible(
         this.model,
         true
       );
 
       this.removeTrapBubble();
-
-      /*
-       * If the player is alive again,
-       * resume normal network movement.
-       */
 
       if (
         player.alive
@@ -511,8 +471,7 @@ export class RemotePlayer
     ) {
 
       for (
-        const item
-        of material
+        const item of material
       ) {
 
         item.dispose();
@@ -533,16 +492,6 @@ export class RemotePlayer
 
   private getTrappedModelOffset():
     THREE.Vector3 {
-
-    /*
-     * The tadpole faces -Z.
-     *
-     * Its tail is positioned toward +Z.
-     *
-     * Move the entire tadpole forward
-     * so the tail sits farther inside
-     * the trapping bubble.
-     */
 
     const forward =
       new THREE.Vector3(
@@ -578,18 +527,6 @@ export class RemotePlayer
         )
       );
 
-    /*
-     * ======================================
-     * TRAPPED
-     * ======================================
-     *
-     * Calculate the position directly from
-     * server timestamps.
-     *
-     * This means every client sees the
-     * player rising on the same timeline.
-     */
-
     if (
       this.trapped
     ) {
@@ -612,12 +549,6 @@ export class RemotePlayer
 
       return;
     }
-
-    /*
-     * ======================================
-     * NORMAL MOVEMENT
-     * ======================================
-     */
 
     this.model.position.lerp(
       this.targetPosition,
@@ -676,22 +607,12 @@ export class RemotePlayer
         1
       );
 
-    /*
-     * Interpolate from the exact server
-     * trap position to the surface.
-     */
-
     const y =
       THREE.MathUtils.lerp(
         this.trapStartPosition.y,
         this.trapTargetPosition.y,
         progress
       );
-
-    /*
-     * Keep the bubble centered on the
-     * server's trap position.
-     */
 
     if (
       this.trapBubble
@@ -703,15 +624,6 @@ export class RemotePlayer
         this.trapStartPosition.z
       );
     }
-
-    /*
-     * Move the tadpole slightly forward
-     * inside the bubble.
-     *
-     * The -0.15 vertical offset keeps the
-     * tadpole centered slightly below the
-     * bubble's center.
-     */
 
     const offset =
       this.getTrappedModelOffset();
@@ -736,7 +648,7 @@ export class RemotePlayer
     this.model.removeFromParent();
 
     this.model.traverse(
-      (object) => {
+      object => {
 
         const mesh =
           object as THREE.Mesh;
@@ -756,8 +668,7 @@ export class RemotePlayer
         ) {
 
           for (
-            const item
-            of material
+            const item of material
           ) {
 
             item.dispose();

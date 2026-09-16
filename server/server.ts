@@ -11,6 +11,10 @@ import {
   randomUUID
 } from 'crypto';
 
+import {
+  PLAYER_COLORS
+} from '../src/game/playerColor';
+
 const PORT =
   Number(
     process.env.PORT
@@ -40,6 +44,33 @@ const MAX_PLAYERS =
   12;
 
 // ========================================
+// PLAYER COLORS
+// ========================================
+
+const PLAYER_COLOR_IDS =
+  new Set(
+    PLAYER_COLORS.map(
+      color => color.id
+    )
+  );
+
+const DEFAULT_PLAYER_COLOR =
+  'default';
+
+function isValidPlayerColor(
+  color: unknown
+): color is string {
+
+  return (
+    typeof color ===
+      'string' &&
+    PLAYER_COLOR_IDS.has(
+      color
+    )
+  );
+}
+
+// ========================================
 // SPAWN POSITIONS
 // ========================================
 
@@ -50,8 +81,11 @@ const SPAWN_Y =
   -10;
 
 interface SpawnPosition {
+
   x: number;
+
   y: number;
+
   z: number;
 }
 
@@ -76,6 +110,7 @@ function createSpawnPositions():
       2;
 
     positions.push({
+
       x:
         Math.sin(angle) *
         SPAWN_RADIUS,
@@ -99,7 +134,7 @@ function shuffleSpawnPositions(
 
   const shuffled =
     positions.map(
-      (position) => ({
+      position => ({
         ...position,
       })
     );
@@ -137,19 +172,28 @@ interface Player {
 
   id: string;
 
+  color: string;
+
   x: number;
+
   y: number;
+
   z: number;
 
   yaw: number;
+
   pitch: number;
 
   vx: number;
+
   vy: number;
+
   vz: number;
 
   alive: boolean;
+
   trapped: boolean;
+
   isDrowned: boolean;
 
   trappedAt:
@@ -159,7 +203,9 @@ interface Player {
     number | null;
 
   trapStartX: number;
+
   trapStartY: number;
+
   trapStartZ: number;
 }
 
@@ -399,7 +445,7 @@ server.on(
       request,
       socket,
       head,
-      (webSocket) => {
+      webSocket => {
 
         wss.emit(
           'connection',
@@ -504,10 +550,13 @@ function broadcastRoomState(
     Array.from(
       room.players.values()
     ).map(
-      (player) => ({
+      player => ({
 
         id:
           player.id,
+
+        color:
+          player.color,
 
         x:
           player.x,
@@ -686,7 +735,7 @@ function checkRoundEnd(
     Array.from(
       room.players.values()
     ).filter(
-      (player) =>
+      player =>
         player.alive &&
         !player.isDrowned
     );
@@ -871,7 +920,8 @@ function trapPlayer(
       (
         distance /
         BUBBLE_RISE_SPEED
-      ) * 1000
+      ) *
+      1000
     );
 
   target.trapped =
@@ -1077,7 +1127,7 @@ function removePlayer(
 
 wss.on(
   'connection',
-  (socket) => {
+  socket => {
 
     const playerId =
       randomUUID();
@@ -1091,6 +1141,11 @@ wss.on(
 
       id:
         playerId,
+
+      // DEFAULT is the original
+      // tadpole color.
+      color:
+        DEFAULT_PLAYER_COLOR,
 
       x:
         0,
@@ -1161,7 +1216,7 @@ wss.on(
 
     socket.on(
       'message',
-      (data) => {
+      data => {
 
         let message:
           any;
@@ -1410,6 +1465,7 @@ wss.on(
           if (
             !currentRoom
           ) {
+
             return;
           }
 
@@ -1496,6 +1552,7 @@ wss.on(
           if (
             !currentRoom
           ) {
+
             return;
           }
 
@@ -1563,6 +1620,7 @@ wss.on(
           if (
             !currentRoom
           ) {
+
             return;
           }
 
@@ -1588,6 +1646,21 @@ wss.on(
           ) {
 
             return;
+          }
+
+          // Update color.
+          //
+          // Invalid colors are ignored,
+          // so the player keeps their
+          // previous valid color.
+          if (
+            isValidPlayerColor(
+              networkPlayer.color
+            )
+          ) {
+
+            storedPlayer.color =
+              networkPlayer.color;
           }
 
           if (
@@ -1674,6 +1747,7 @@ wss.on(
           if (
             !currentRoom
           ) {
+
             return;
           }
 
@@ -1681,6 +1755,7 @@ wss.on(
             currentRoom.phase !==
             'playing'
           ) {
+
             return;
           }
 
@@ -1692,6 +1767,7 @@ wss.on(
           if (
             !shooter
           ) {
+
             return;
           }
 
@@ -1700,6 +1776,7 @@ wss.on(
             shooter.trapped ||
             shooter.isDrowned
           ) {
+
             return;
           }
 
@@ -1741,6 +1818,7 @@ wss.on(
             !Number.isFinite(vy) ||
             !Number.isFinite(vz)
           ) {
+
             return;
           }
 
@@ -1753,11 +1831,15 @@ wss.on(
               shooter.id,
 
             x,
+
             y,
+
             z,
 
             vx,
+
             vy,
+
             vz,
           };
 
@@ -1770,6 +1852,7 @@ wss.on(
               otherSocket ===
               socket
             ) {
+
               continue;
             }
 
@@ -1794,6 +1877,7 @@ wss.on(
           if (
             !currentRoom
           ) {
+
             return;
           }
 
@@ -1805,6 +1889,7 @@ wss.on(
           if (
             !attacker
           ) {
+
             return;
           }
 
@@ -1839,6 +1924,7 @@ wss.on(
           if (
             !target
           ) {
+
             return;
           }
 
@@ -1863,6 +1949,7 @@ wss.on(
           if (
             !currentRoom
           ) {
+
             return;
           }
 

@@ -18,8 +18,14 @@ import {
 
 import {
   createPlayerModel,
+  setPlayerModelColor,
   setPlayerFlashlightVisible
 } from './playerModel';
+
+import {
+  getPlayerColor,
+  type PlayerColor
+} from '../game/playerColor';
 
 import {
   Bubbles
@@ -72,9 +78,8 @@ export class Player {
   private attack:
     Attack;
 
-  getYaw(): number {
-    return this.controls.yaw;
-  }
+  private playerColor:
+    PlayerColor;
 
   private trappedAt:
     number | null =
@@ -83,6 +88,10 @@ export class Player {
   private trapEndAt:
     number | null =
     null;
+
+  getYaw(): number {
+    return this.controls.yaw;
+  }
 
   constructor(
     scene: THREE.Scene,
@@ -110,8 +119,19 @@ export class Player {
     this.isFrozen =
       false;
 
+    // Load the saved color.
+    // If the player has never selected
+    // a color, this returns DEFAULT.
+    this.playerColor =
+      getPlayerColor();
+
     this.model =
       createPlayerModel();
+
+    setPlayerModelColor(
+      this.model,
+      this.playerColor.hex
+    );
 
     this.model.visible =
       false;
@@ -154,6 +174,29 @@ export class Player {
           facingThreshold: 0,
         }
       );
+  }
+
+  // ==============================
+  // COLOR
+  // ==============================
+
+  setColor(
+    color: PlayerColor
+  ): void {
+
+    this.playerColor =
+      color;
+
+    setPlayerModelColor(
+      this.model,
+      color.hex
+    );
+  }
+
+  getColor():
+    PlayerColor {
+
+    return this.playerColor;
   }
 
   // ==============================
@@ -232,12 +275,14 @@ export class Player {
       this.death.active ||
       this.isFrozen
     ) {
+
       return false;
     }
 
     if (
       this.attack.isAttacking
     ) {
+
       return false;
     }
 
@@ -245,6 +290,7 @@ export class Player {
       this.attack.cooldownRemaining >
       0
     ) {
+
       return false;
     }
 
@@ -296,77 +342,80 @@ export class Player {
   // ==============================
 
   private updateTrappedPlayer(): void {
-  const bubble =
-    this.cameraSystem.getTrappedBubble();
 
-  if (!bubble) {
-    return;
-  }
+    const bubble =
+      this.cameraSystem.getTrappedBubble();
 
-  this.model.position.copy(
-    bubble.position
-  );
-
-  this.model.position.y -= 0.15;
-
-  this.model.rotation.set(
-    this.controls.pitch,
-    this.controls.yaw,
-    0,
-    'YXZ'
-  );
-}
-
-  setTrapped(
-  trapped: boolean,
-  bubble: THREE.Mesh | null = null
-): void {
-
-  this.isFrozen =
-    trapped;
-
-  if (trapped) {
-
-    this.model.visible =
-      true;
-
-    setPlayerFlashlightVisible(
-      this.model,
-      false
-    );
-
-    if (
-      this.trappedAt === null
-    ) {
-      this.trappedAt =
-        Date.now();
+    if (!bubble) {
+      return;
     }
 
-    this.cameraSystem.setTrapped(
-      bubble
+    this.model.position.copy(
+      bubble.position
     );
 
-    this.updateTrappedPlayer();
+    this.model.position.y -=
+      0.15;
 
-  } else {
-
-    this.trappedAt =
-      null;
-
-    this.trapEndAt =
-      null;
-
-    setPlayerFlashlightVisible(
-      this.model,
-      true
+    this.model.rotation.set(
+      this.controls.pitch,
+      this.controls.yaw,
+      0,
+      'YXZ'
     );
-
-    this.cameraSystem.clearTrapped();
-
-    this.model.visible =
-      false;
   }
-}
+
+  setTrapped(
+    trapped: boolean,
+    bubble: THREE.Mesh | null = null
+  ): void {
+
+    this.isFrozen =
+      trapped;
+
+    if (trapped) {
+
+      this.model.visible =
+        true;
+
+      setPlayerFlashlightVisible(
+        this.model,
+        false
+      );
+
+      if (
+        this.trappedAt === null
+      ) {
+
+        this.trappedAt =
+          Date.now();
+      }
+
+      this.cameraSystem.setTrapped(
+        bubble
+      );
+
+      this.updateTrappedPlayer();
+
+    } else {
+
+      this.trappedAt =
+        null;
+
+      this.trapEndAt =
+        null;
+
+      setPlayerFlashlightVisible(
+        this.model,
+        true
+      );
+
+      this.cameraSystem.clearTrapped();
+
+      this.model.visible =
+        false;
+    }
+  }
 
   setNetworkTrapTiming(
     trappedAt:
@@ -426,6 +475,11 @@ export class Player {
 
       id:
         this.id,
+
+      // Send the currently selected
+      // local color with the player state.
+      color:
+        this.playerColor.id,
 
       x:
         this.camera.position.x,

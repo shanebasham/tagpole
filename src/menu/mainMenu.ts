@@ -3,7 +3,15 @@ import * as THREE from 'three';
 import './style.css';
 
 import {
+  PLAYER_COLORS,
+  getPlayerColor,
+  setPlayerColor,
+  type PlayerColor
+} from '../game/playerColor';
+
+import {
   setPlayerFlashlightVisible,
+  setPlayerModelColor
 } from '../player/playerModel';
 
 import {
@@ -28,7 +36,11 @@ export class MainMenu {
     THREE.Group;
 
   private aiSelector:
-    AISelector | null = null;
+    AISelector | null =
+    null;
+
+  private onPlayerColorChanged:
+    (color: PlayerColor) => void;
 
   private onVsAI:
     (aiCount: number) => void;
@@ -52,14 +64,34 @@ export class MainMenu {
   private selectedAICount:
     number = 0;
 
+  private selectedPlayerColor:
+    PlayerColor =
+    getPlayerColor();
+
   constructor(
     tadpoleModel: THREE.Group,
-    onVsAI: (aiCount: number) => void,
-    onCreateRoom: () => void,
-    onJoinRoom: (roomCode: string) => void,
-    onLeaveRoom: () => void,
-    onStartGame: () => void
+
+    onPlayerColorChanged:
+      (color: PlayerColor) => void,
+
+    onVsAI:
+      (aiCount: number) => void,
+
+    onCreateRoom:
+      () => void,
+
+    onJoinRoom:
+      (roomCode: string) => void,
+
+    onLeaveRoom:
+      () => void,
+
+    onStartGame:
+      () => void
   ) {
+
+    this.onPlayerColorChanged =
+      onPlayerColorChanged;
 
     this.onVsAI =
       onVsAI;
@@ -88,6 +120,10 @@ export class MainMenu {
       this.container
     );
 
+    // ==============================
+    // PREVIEW SCENE
+    // ==============================
+
     this.tadpoleScene =
       new THREE.Scene();
 
@@ -113,6 +149,10 @@ export class MainMenu {
       0,
       0
     );
+
+    // ==============================
+    // LIGHTING
+    // ==============================
 
     const ambientLight =
       new THREE.AmbientLight(
@@ -156,6 +196,10 @@ export class MainMenu {
       fillLight
     );
 
+    // ==============================
+    // PREVIEW RENDERER
+    // ==============================
+
     this.tadpoleRenderer =
       new THREE.WebGLRenderer({
         antialias: true,
@@ -177,8 +221,14 @@ export class MainMenu {
     this.tadpoleRenderer.domElement.className =
       'menu-tadpole-renderer';
 
+    // ==============================
+    // PREVIEW MODEL
+    // ==============================
+
     this.tadpoleModel =
-      tadpoleModel.clone(true);
+      this.cloneModelWithMaterials(
+        tadpoleModel
+      );
 
     setPlayerFlashlightVisible(
       this.tadpoleModel,
@@ -204,10 +254,17 @@ export class MainMenu {
       1.7
     );
 
+    setPlayerModelColor(
+      this.tadpoleModel,
+      this.selectedPlayerColor.hex
+    );
+
     this.tadpoleScene.add(
       this.tadpoleModel
     );
 
+    // The actual game player is controlled
+    // separately by Player.
     tadpoleModel.visible =
       false;
 
@@ -217,17 +274,273 @@ export class MainMenu {
   }
 
   // ==============================
+  // CLONE MODEL
+  // ==============================
+
+  private cloneModelWithMaterials(
+    model: THREE.Group
+  ): THREE.Group {
+
+    const clone =
+      model.clone(true);
+
+    clone.traverse(
+      object => {
+
+        if (
+          !(object instanceof THREE.Mesh)
+        ) {
+          return;
+        }
+
+        if (
+          Array.isArray(
+            object.material
+          )
+        ) {
+
+          object.material =
+            object.material.map(
+              material =>
+                material.clone()
+            );
+
+        } else {
+
+          object.material =
+            object.material.clone();
+        }
+      }
+    );
+
+    return clone;
+  }
+
+  // ==============================
+  // CUSTOMIZE
+  // ==============================
+
+  private showCustomize(): void {
+
+    this.destroyAISelector();
+
+    this.lobbyStartButton =
+      null;
+
+    this.tadpoleModel.visible =
+      true;
+
+    this.container.innerHTML = `
+      <div class="customize-screen">
+
+        <div class="customize-content">
+
+          <div class="game-title">
+            CUSTOMIZE
+          </div>
+
+          <div class="game-subtitle">
+            CHOOSE YOUR COLOR
+          </div>
+
+          <div
+            id="customize-preview"
+            class="customize-preview"
+          ></div>
+
+          <div
+            id="customize-colors"
+            class="customize-colors"
+          ></div>
+
+          <div
+            id="customize-color-name"
+            class="customize-color-name"
+          ></div>
+
+          <button
+            id="customize-back"
+            class="menu-button customize-back"
+            type="button"
+          >
+            ← BACK
+          </button>
+
+        </div>
+
+      </div>
+    `;
+
+    const preview =
+      document.getElementById(
+        'customize-preview'
+      );
+
+    if (preview) {
+
+      preview.appendChild(
+        this.tadpoleRenderer.domElement
+      );
+    }
+
+    const colors =
+      document.getElementById(
+        'customize-colors'
+      );
+
+    if (colors) {
+
+      for (
+        const color of PLAYER_COLORS
+      ) {
+
+        const button =
+          document.createElement(
+            'button'
+          );
+
+        button.type =
+          'button';
+
+        button.className =
+          'customize-color';
+
+        button.dataset.color =
+          color.id;
+
+        button.title =
+          color.name;
+
+        button.setAttribute(
+          'aria-label',
+          `Choose ${color.name}`
+        );
+
+        button.innerHTML = `
+          <span
+            class="customize-color-swatch"
+            style="background:${color.css}"
+          ></span>
+        `;
+
+        button.addEventListener(
+          'click',
+          () => {
+
+            this.selectPlayerColor(
+              color.id
+            );
+          }
+        );
+
+        colors.appendChild(
+          button
+        );
+      }
+    }
+
+    document
+      .getElementById(
+        'customize-back'
+      )
+      ?.addEventListener(
+        'click',
+        () => {
+
+          this.showMainMenu();
+        }
+      );
+
+    this.updateCustomizeSelection();
+
+    setPlayerModelColor(
+      this.tadpoleModel,
+      this.selectedPlayerColor.hex
+    );
+
+    this.container.style.display =
+      'flex';
+
+    this.resize();
+  }
+
+  // ==============================
+  // SELECT COLOR
+  // ==============================
+
+  private selectPlayerColor(
+    id: string
+  ): void {
+
+    this.selectedPlayerColor =
+      setPlayerColor(
+        id
+      );
+
+    // Update the preview.
+    setPlayerModelColor(
+      this.tadpoleModel,
+      this.selectedPlayerColor.hex
+    );
+
+    // Update the actual local player.
+    this.onPlayerColorChanged(
+      this.selectedPlayerColor
+    );
+
+    this.updateCustomizeSelection();
+  }
+
+  // ==============================
+  // UPDATE COLOR SELECTION
+  // ==============================
+
+  private updateCustomizeSelection(): void {
+
+    const buttons =
+      document.querySelectorAll<HTMLElement>(
+        '.customize-color'
+      );
+
+    buttons.forEach(
+      button => {
+
+        button.classList.toggle(
+          'selected',
+          button.dataset.color ===
+            this.selectedPlayerColor.id
+        );
+      }
+    );
+
+    const name =
+      document.getElementById(
+        'customize-color-name'
+      );
+
+    if (name) {
+
+      name.textContent =
+        this.selectedPlayerColor.name;
+    }
+  }
+
+  // ==============================
   // CLEAN UP AI SELECTOR
   // ==============================
 
   private destroyAISelector(): void {
 
-    if (!this.aiSelector) {
+    if (
+      !this.aiSelector
+    ) {
       return;
     }
 
     this.aiSelector.destroy();
-    this.aiSelector = null;
+
+    this.aiSelector =
+      null;
 
     this.tadpoleModel.visible =
       true;
@@ -243,6 +556,14 @@ export class MainMenu {
 
     this.lobbyStartButton =
       null;
+
+    this.tadpoleModel.visible =
+      true;
+
+    setPlayerModelColor(
+      this.tadpoleModel,
+      this.selectedPlayerColor.hex
+    );
 
     this.container.innerHTML = `
       <div class="menu-content">
@@ -310,25 +631,33 @@ export class MainMenu {
     this.attachTadpoleRenderer();
 
     document
-      .getElementById('menu-ai')
+      .getElementById(
+        'menu-ai'
+      )
       ?.addEventListener(
         'click',
         () => {
+
           this.showAISetup();
         }
       );
 
     document
-      .getElementById('menu-friends')
+      .getElementById(
+        'menu-friends'
+      )
       ?.addEventListener(
         'click',
         () => {
+
           this.showFriendsMenu();
         }
       );
 
     document
-      .getElementById('menu-settings')
+      .getElementById(
+        'menu-settings'
+      )
       ?.addEventListener(
         'click',
         () => {
@@ -347,8 +676,10 @@ export class MainMenu {
 
           setTimeout(
             () => {
+
               button.textContent =
                 'SETTINGS';
+
             },
             1200
           );
@@ -356,30 +687,14 @@ export class MainMenu {
       );
 
     document
-      .getElementById('menu-customize')
+      .getElementById(
+        'menu-customize'
+      )
       ?.addEventListener(
         'click',
         () => {
 
-          const button =
-            document.getElementById(
-              'menu-customize'
-            );
-
-          if (!button) {
-            return;
-          }
-
-          button.textContent =
-            'COMING SOON';
-
-          setTimeout(
-            () => {
-              button.textContent =
-                'CUSTOMIZE';
-            },
-            1200
-          );
+          this.showCustomize();
         }
       );
 
@@ -475,11 +790,6 @@ export class MainMenu {
       return;
     }
 
-    /*
-     * The selector uses the existing Three.js
-     * renderer and scene, but hides the normal
-     * single centered tadpole.
-     */
     this.tadpoleModel.visible =
       false;
 
@@ -487,10 +797,6 @@ export class MainMenu {
       this.tadpoleRenderer.domElement
     );
 
-    /*
-     * The radial selector itself is placed
-     * over the renderer.
-     */
     tadpoleContainer.appendChild(
       selectorContainer
     );
@@ -501,6 +807,7 @@ export class MainMenu {
         this.tadpoleModel,
         tadpoleContainer,
         {
+
           onCountChanged:
             count => {
 
@@ -511,15 +818,13 @@ export class MainMenu {
       );
 
     document
-      .getElementById('ai-start')
+      .getElementById(
+        'ai-start'
+      )
       ?.addEventListener(
         'click',
         () => {
 
-          /*
-           * Do not allow a zero-opponent
-           * round to start.
-           */
           if (
             this.selectedAICount < 1
           ) {
@@ -538,7 +843,9 @@ export class MainMenu {
       );
 
     document
-      .getElementById('ai-back')
+      .getElementById(
+        'ai-back'
+      )
       ?.addEventListener(
         'click',
         () => {
@@ -812,6 +1119,7 @@ export class MainMenu {
         if (
           event.key === 'Enter'
         ) {
+
           join();
         }
       }
@@ -832,7 +1140,9 @@ export class MainMenu {
 
     setTimeout(
       () => {
+
         input.focus();
+
       },
       50
     );
@@ -1009,7 +1319,9 @@ export class MainMenu {
       return;
     }
 
-    if (this.aiSelector) {
+    if (
+      this.aiSelector
+    ) {
 
       this.aiSelector.update(
         time
@@ -1072,6 +1384,9 @@ export class MainMenu {
     const element =
       document.getElementById(
         'menu-tadpole-container'
+      ) ??
+      document.getElementById(
+        'customize-preview'
       );
 
     if (!element) {
@@ -1093,8 +1408,7 @@ export class MainMenu {
     this.tadpoleCamera.aspect =
       width / height;
 
-    this.tadpoleCamera
-      .updateProjectionMatrix();
+    this.tadpoleCamera.updateProjectionMatrix();
 
     this.tadpoleRenderer.setSize(
       width,

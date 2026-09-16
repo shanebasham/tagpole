@@ -1,6 +1,36 @@
 import * as THREE from 'three';
 
-export function createPlayerModel() {
+function darkenColor(
+  color: number,
+  amount = 0.58
+): number {
+
+  const r =
+    (color >> 16) & 0xff;
+
+  const g =
+    (color >> 8) & 0xff;
+
+  const b =
+    color & 0xff;
+
+  const darkenedR =
+    Math.round(r * amount);
+
+  const darkenedG =
+    Math.round(g * amount);
+
+  const darkenedB =
+    Math.round(b * amount);
+
+  return (
+    (darkenedR << 16) |
+    (darkenedG << 8) |
+    darkenedB
+  );
+}
+
+export function createPlayerModel(): THREE.Group {
 
   const tadpole =
     new THREE.Group();
@@ -33,6 +63,9 @@ export function createPlayerModel() {
     0.9,
     1.25
   );
+
+  body.userData.playerColorPart =
+    'body';
 
   tadpole.add(body);
 
@@ -82,7 +115,7 @@ export function createPlayerModel() {
   tadpole.add(rightEye);
 
   // ==============================
-  // FLASHLIGHT BEAMS
+  // FLASHLIGHT BEAM
   // ==============================
 
   function createFlashlightBeam(): THREE.Mesh {
@@ -110,105 +143,59 @@ export function createPlayerModel() {
           THREE.DoubleSide,
 
         uniforms: {
-
           color: {
             value:
               new THREE.Color(
                 0xbdefff
-              )
+              ),
           },
-
         },
 
         vertexShader: `
-          varying vec3 vLocalPosition;
+          varying vec2 vUv;
 
           void main() {
 
-            vLocalPosition =
-              position;
+            vUv = uv;
 
             gl_Position =
               projectionMatrix *
               modelViewMatrix *
-              vec4(
-                position,
-                1.0
-              );
+              vec4(position, 1.0);
           }
         `,
 
         fragmentShader: `
           uniform vec3 color;
 
-          varying vec3 vLocalPosition;
+          varying vec2 vUv;
 
           void main() {
 
-            /*
-             * ConeGeometry points along Y.
-             *
-             * The cone is rotated so its
-             * tip points forward along -Z.
-             *
-             * The tip is at local +Y.
-             */
-
-            float distanceFromEye =
-              (7.0 - vLocalPosition.y) / 14.0;
-
-            /*
-             * Fade the beam toward the
-             * far end.
-             */
-
-            float distanceFade =
-              1.0 -
-              smoothstep(
-                0.05,
-                1.0,
-                distanceFromEye
-              );
-
-            /*
-             * Distance from the center
-             * of the beam.
-             */
-
-            float radius =
-              length(
-                vLocalPosition.xz
-              );
-
-            /*
-             * The cone gets wider as it
-             * travels away from the eye.
-             */
-
-            float coneRadius =
-              0.05 +
-              distanceFromEye * 1.8;
-
-            /*
-             * Soft outer edge.
-             */
-
             float edge =
-              1.0 -
               smoothstep(
-                coneRadius * 0.55,
-                coneRadius,
-                radius
+                0.0,
+                0.35,
+                vUv.x
+              ) *
+              smoothstep(
+                1.0,
+                0.65,
+                vUv.x
               );
 
-            /*
-             * Overall beam strength.
-             */
+            float lengthFade =
+              1.0 -
+              smoothstep(
+                0.0,
+                1.0,
+                vUv.y
+              );
 
             float alpha =
-              distanceFade *
               edge *
-              0.16;
+              lengthFade *
+              0.13;
 
             gl_FragColor =
               vec4(
@@ -225,29 +212,11 @@ export function createPlayerModel() {
         material
       );
 
-    /*
-     * Mark this object so cloned
-     * player models can find it.
-     */
-
     beam.userData.isFlashlightBeam =
       true;
 
-    /*
-     * ConeGeometry points along +Y.
-     *
-     * Rotate +Y toward -Z so the
-     * flashlight points forward.
-     */
-
     beam.rotation.x =
       Math.PI / 2;
-
-    /*
-     * Move the cone forward by half
-     * its length so the narrow tip
-     * starts at the eye.
-     */
 
     beam.position.z =
       -7.0;
@@ -261,13 +230,8 @@ export function createPlayerModel() {
   const rightBeam =
     createFlashlightBeam();
 
-  leftEye.add(
-    leftBeam
-  );
-
-  rightEye.add(
-    rightBeam
-  );
+  leftEye.add(leftBeam);
+  rightEye.add(rightBeam);
 
   // ==============================
   // TAIL
@@ -299,15 +263,113 @@ export function createPlayerModel() {
   tail.position.z =
     1;
 
+  tail.userData.playerColorPart =
+    'tail';
+
   tadpole.add(tail);
 
   return tadpole;
 }
 
+export function setPlayerModelColor(
+  model: THREE.Group,
+  color: number
+): void {
 
-// ========================================
-// FLASHLIGHT VISIBILITY
-// ========================================
+  const tailColor =
+    darkenColor(color);
+
+  model.traverse(
+    object => {
+
+      if (
+        !(object instanceof THREE.Mesh)
+      ) {
+        return;
+      }
+
+      const part =
+        object.userData.playerColorPart;
+
+      if (
+        part !== 'body' &&
+        part !== 'tail'
+      ) {
+        return;
+      }
+
+      const materials =
+        Array.isArray(object.material)
+          ? object.material
+          : [object.material];
+
+      for (
+        const material of materials
+      ) {
+
+        if (
+          material instanceof
+          THREE.MeshStandardMaterial
+        ) {
+
+          if (
+            part === 'body'
+          ) {
+
+            material.color.setHex(
+              color
+            );
+
+          } else {
+
+            material.color.setHex(
+              tailColor
+            );
+          }
+        }
+      }
+    }
+  );
+}
+
+export function clonePlayerModel(
+  model: THREE.Group
+): THREE.Group {
+
+  const clone =
+    model.clone(true);
+
+  clone.traverse(
+    object => {
+
+      if (
+        !(object instanceof THREE.Mesh)
+      ) {
+        return;
+      }
+
+      if (
+        Array.isArray(
+          object.material
+        )
+      ) {
+
+        object.material =
+          object.material.map(
+            material =>
+              material.clone()
+          );
+
+      } else {
+
+        object.material =
+          object.material.clone();
+      }
+    }
+  );
+
+  return clone;
+}
 
 export function setPlayerFlashlightVisible(
   model: THREE.Group,
@@ -315,11 +377,11 @@ export function setPlayerFlashlightVisible(
 ): void {
 
   model.traverse(
-    (object) => {
+    object => {
 
       if (
-        object.userData
-          .isFlashlightBeam === true
+        object.userData.isFlashlightBeam ===
+        true
       ) {
 
         object.visible =
